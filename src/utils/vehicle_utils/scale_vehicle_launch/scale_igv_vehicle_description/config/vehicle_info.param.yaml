@@ -1,0 +1,35 @@
+/**:
+  ros__parameters:
+    wheel_radius: 0.15 # The radius of the wheel, primarily used for dead reckoning.
+    wheel_width: 0.1 # The lateral width of a wheel tire, primarily used for dead reckoning.
+    wheel_base: 2.3 # between front wheel center and rear wheel center
+    wheel_tread: 0.8 # between left wheel center and right wheel center
+    front_overhang: 0.35 # between front wheel center and vehicle front
+    rear_overhang: 0.35 # between rear wheel center and vehicle rear
+    left_overhang: 0.1 # between left wheel center and vehicle left
+    right_overhang: 0.1 # between right wheel center and vehicle right
+    vehicle_height: 0.6
+    max_steer_angle: 0.55 # [rad]
+
+    # Derived dimensions for planning/control nodes
+    vehicle_length: 3.0  # front_overhang(0.35) + wheel_base(2.3) + rear_overhang(0.35)
+    vehicle_width: 1.0   # wheel_tread(0.8) + left_overhang(0.1) + right_overhang(0.1)
+
+    # 4WS/Q-turn parameters (scaled from IGV by wheel_base ratio 2.3/6.0 = 0.383)
+    # Values are the clothoid-apex radii used by PathGenerator::generateQTurnSegment,
+    # scaled from the IGV canonical values in fms_path_converter.param.yaml
+    # (qturn_min_radius=15.5, qturn_yaw_min_radius=8.1).
+    qturn_min_radius: 6.0        # IGV 15.5m / 3 — position-clothoid apex radius R
+    qturn_yaw_min_radius: 4.0     # IGV 8.1m  / 3 — heading-clothoid radius (4WS sideslip)
+
+    # Oblique mode parameters (scaled from IGV by wheel_base ratio 0.333)
+    oblique_max_lateral_distance: 2.7   # IGV 8.0m * 0.333 - max lateral displacement for oblique
+    oblique_min_arc_length: 0.5         # IGV 1.5m * 0.333 - minimum arc length for oblique entry/exit
+    lane_change_lateral_threshold: 0.5  # IGV 1.5m * 0.333 - lateral offset to trigger oblique
+
+    # Motion control lookahead parameters (scaled from IGV)
+    # IGV values: min_lookahead=4.35, max_lookahead=15.0, reverse_min=4.5
+    # Scale factor: wheel_base ratio = 2.0/6.0 = 0.333
+    min_lookahead_distance: 1.5       # IGV 4.35m * 0.333 ≈ 1.45m, rounded up for stability
+    max_lookahead_distance: 5.0       # IGV 15.0m * 0.333 = 5.0m
+    reverse_min_lookahead_distance: 1.5  # IGV 4.5m * 0.333 = 1.5m

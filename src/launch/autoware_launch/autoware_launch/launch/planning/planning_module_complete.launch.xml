@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <!-- Essential parameters -->
+  <arg name="map_path" default="/igv/map" description="point cloud and lanelet2 map directory path"/>
+  <arg name="vehicle_model" default="igv_vehicle" description="vehicle model name"/>
+  <arg name="sensor_model" default="sample_sensor_kit" description="sensor model name"/>
+  
+  <!-- Map files -->
+  <arg name="lanelet2_map_file" default="nanhui0519.osm" description="lanelet2 map file name"/>
+  <arg name="pointcloud_map_file" default="pointcloud_map.pcd" description="pointcloud map file name"/>
+  
+  <!-- Container settings -->
+  <arg name="pointcloud_container_name" default="pointcloud_container" description="pointcloud container name"/>
+  <arg name="use_multithread" default="true" description="use multithread for pointcloud container"/>
+  
+  <!-- Planning settings -->
+  <arg name="module_preset" default="default" description="planning module preset"/>
+  <arg name="enable_all_modules_auto_mode" default="false" description="enable all module's auto mode"/>
+  <arg name="is_simulation" default="true" description="simulation mode"/>
+  
+  <!-- Vehicle interface -->
+  <arg name="launch_vehicle_interface" default="true" description="launch vehicle interface"/>
+
+  <!-- Launch pointcloud container -->
+  <include file="$(find-pkg-share autoware_launch)/launch/pointcloud_container.launch.py">
+    <arg name="use_multithread" value="$(var use_multithread)"/>
+    <arg name="container_name" value="$(var pointcloud_container_name)"/>
+  </include>
+
+  <!-- Launch map component -->
+  <include file="$(find-pkg-share autoware_launch)/launch/components/tier4_map_component.launch.xml">
+    <arg name="map_path" value="$(var map_path)"/>
+    <arg name="lanelet2_map_file" value="$(var lanelet2_map_file)"/>
+    <arg name="pointcloud_map_file" value="$(var pointcloud_map_file)"/>
+  </include>
+
+  <!-- Launch vehicle -->
+  <include file="$(find-pkg-share tier4_vehicle_launch)/launch/vehicle.launch.xml">
+    <arg name="vehicle_model" value="$(var vehicle_model)"/>
+    <arg name="sensor_model" value="$(var sensor_model)"/>
+    <arg name="launch_vehicle_interface" value="$(var launch_vehicle_interface)"/>
+  </include>
+
+  <!-- Launch planning component -->
+  <include file="$(find-pkg-share autoware_launch)/launch/components/tier4_planning_component_v1.launch.xml">
+    <arg name="vehicle_model" value="$(var vehicle_model)"/>
+    <arg name="pointcloud_container_name" value="$(var pointcloud_container_name)"/>
+    <arg name="module_preset" value="$(var module_preset)"/>
+    <arg name="enable_all_modules_auto_mode" value="$(var enable_all_modules_auto_mode)"/>
+    <arg name="is_simulation" value="$(var is_simulation)"/>
+  </include>
+
+</launch>

@@ -1,0 +1,97 @@
+/**:
+  ros__parameters:
+    # ----------------------------------------------------------------------
+    # Dynamic-obstacle stop
+    # Emits a v=0 VelocityConstraint with per-UUID time hysteresis.
+    # ----------------------------------------------------------------------
+    dynamic_obstacle_stop:
+      enable: true                                    # [debug] set false via `ros2 param set` to isolate perception impact
+      minimum_object_velocity: 0.5                    # [m/s] "static" vs "moving" threshold. >0 so tracked statics don't hard-stop here — close statics are the occupancy grid's job.
+      stop_distance_buffer: 6.0                       # [m] extra gap between collision point and stop
+      time_horizon: 5.0                               # [s] how far ahead to check predicted paths
+      hysteresis: 1.0                                 # [m] reserved for distance hysteresis on the stop point
+      extra_object_width: 0.5                         # [m] inflate object width for collision band
+      add_stop_duration_buffer: 1.0                   # [s] sustained-collision before committing to stop
+      remove_stop_duration_buffer: 1.0                # [s] sustained-clear before releasing the stop
+      minimum_object_distance_from_ego_trajectory: 0.0  # [m] ignore objects closer than this
+
+    # ----------------------------------------------------------------------
+    # Static-obstacle hard stop. Footprint-aware: stops with a safety gap when a
+    # near-static object's oriented bounding box intrudes the ego corridor
+    # (ego_half_width + lateral_clearance), covering close tracked objects that
+    # the probabilistic grid can under-mark on the path.
+    # ----------------------------------------------------------------------
+    static_obstacle_stop:
+      enable: true
+      maximum_object_velocity: 0.5      # [m/s] treat as static below this (moving -> dynamic_obstacle_stop)
+      lateral_clearance: 0.2            # [m] footprint must come within ego_half_width + this to stop
+      stop_distance_buffer: 6.0         # [m] gap kept before the object's near face
+      max_distance: 30.0                # [m] don't look past this arc-length
+      add_stop_duration_buffer: 0.5     # [s] sustained-intrusion before committing
+      remove_stop_duration_buffer: 1.0  # [s] sustained-clear before releasing
+
+    # ----------------------------------------------------------------------
+    # Adaptive cruise (distilled from
+    # autoware::obstacle_cruise_planner — only the gap-law / leader-velocity
+    # cap is preserved). Emits a global VelocityConstraint capping at the leader.
+    # ----------------------------------------------------------------------
+    adaptive_cruise:
+      enable: false
+      follow_distance_min: 5.0       # [m] floor on the desired gap at low speed
+      follow_time_gap: 1.5           # [s] time-gap term in desired_gap = min + tg * v_ego
+      velocity_margin: 0.5           # [m/s] subtracted from leader speed for the cap
+      max_deceleration: 1.5          # [m/s^2] cap used in the brake-distance term
+      leader_lateral_margin: 1.0     # [m] half-width of the leader-detection band
+      leader_heading_max_diff: 0.7   # [rad] (~40 deg) max heading delta to count as a leader
+      leader_search_distance: 60.0   # [m] max forward arc-length to search for a leader
+
+    # ----------------------------------------------------------------------
+    # Path-to-trajectory preprocessing. Densifies the incoming Path before any
+    # velocity-shaper generator samples it, matching autoware_path_optimizer's
+    # output trajectory spacing.
+    # ----------------------------------------------------------------------
+    trajectory_preprocessing:
+      resample_interval: 0.3         # [m] arc-length spacing before constraints run
+
+    # ----------------------------------------------------------------------
+    # Perception inputs. The occupancy pathway consumes
+    # /perception/occupancy_grid_map/map directly; it is a benign no-op until
+    # that topic is published (the real vehicle may not publish it yet).
+    # ----------------------------------------------------------------------
+    perception_inputs:
+      use_occupancy_grid: true
+
+    # ----------------------------------------------------------------------
+    # Free-space occupancy check (gated by perception_inputs.use_occupancy_grid).
+    # Builds a Euclidean distance map over the occupancy grid and samples a
+    # corridor (path inflated by the ego half-width): a hard stop where the
+    # distance to the nearest occupied cell drops below ego_half_width +
+    # required_clearance, and optional graded slow-down in the slow_band above it.
+    # ----------------------------------------------------------------------
+    occupancy_grid_check:
+      occupancy_threshold: 90         # cell value >= this is "occupied" (splits a 0/100 grid; unknown -1 is free)
+      required_clearance: 1.0         # [m] hard-stop when corridor d_min < ego_half_width + this
+      enable_slow_down: false         # [debug] set true to emit graded kSlowDown constraints from occupancy distance
+      slow_band: 0.3                  # [m] graded slow-down band of distances above the clearance threshold
+      slow_min_target_velocity: 0.5   # [m/s] target at the inner edge of the slow band (closest -> slowest)
+      slow_max_target_velocity: 4.0   # [m/s] target at the outer edge of the slow band (farthest -> fastest)
+      stop_distance_buffer: 6.0       # [m] back the stop off by this much from the intrusion sample
+      max_distance: 30.0              # [m] limit forward look
+      transform_timeout: 0.05         # [s] tf2 lookup timeout
+
+    # ----------------------------------------------------------------------
+    # Object slow-down — outer-band obstacles (objects near but not blocking
+    # the path: a pedestrian on the shoulder, a cone beside the lane). Emits a
+    # windowed VelocityConstraint with time-based per-UUID hysteresis.
+    # ----------------------------------------------------------------------
+    slow_down:
+      enable: false
+      inner_lateral_margin: 0.2         # [m] inner band is owned by static_obstacle_stop/occupancy
+      outer_lateral_margin: 0.6         # [m] beyond this, the obstacle is ignored
+      min_target_velocity: 1.5          # [m/s] target at inner edge (closest -> slowest)
+      max_target_velocity: 4.0          # [m/s] target at outer edge (farthest -> fastest)
+      forward_margin: 5.0               # [m] start slow-down this far before the obstacle
+      backward_margin: 3.0              # [m] end slow-down this far after the obstacle
+      max_distance: 30.0                # [m] don't look past this arc-length
+      add_duration_buffer: 0.3          # [s] sustained-detection before committing
+      remove_duration_buffer: 0.5       # [s] sustained-clear before releasing

@@ -1,0 +1,19 @@
+{
+    "job_id": "job_01",
+    "orientation": 1,
+    "points": [
+        {
+            "heading": -0.7009,
+            "is_reverse": true,
+            "speed": 5,
+            "type_enum": 1,
+            "type_text": "DESTINATION",
+            "x": 34.69,
+            "y": -24.36,
+            "z": 0
+        }
+    ],
+    "route_id": "test_002",
+    "task_id": "task_01",
+    "vehicle_id": "v001"
+}

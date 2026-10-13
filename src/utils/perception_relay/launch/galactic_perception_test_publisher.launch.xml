@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <!--
+    Galactic Perception Test Publisher Launch File
+
+    This launch file is used for testing the perception_relay module.
+    It converts dummy perception ground truth (Humble format) to Galactic format,
+    enabling end-to-end testing of the perception relay pipeline.
+
+    Test Flow:
+      Dummy Perception (Humble ground truth)
+        -> This node (converts to Galactic)
+        -> perception_relay (converts back to Humble)
+        -> Planning modules
+  -->
+
+  <!-- Input topic: ground truth from dummy perception -->
+  <arg name="input_ground_truth_topic" default="/simulation/dummy_perception_publisher/output/debug/ground_truth_objects"
+       description="Input topic for ground truth objects from dummy perception (Humble format)"/>
+
+  <!-- Output topics: Galactic format (to perception_relay) -->
+  <arg name="output_predicted_objects_topic" default="/perception/map_based_prediction/objects"
+       description="Output topic for predicted objects (Galactic format)"/>
+  <arg name="output_detected_objects_topic" default="/perception/object_merger/objects"
+       description="Output topic for detected objects (Galactic format)"/>
+  <arg name="output_tracked_objects_topic" default="/perception/multi_object_tracker/objects"
+       description="Output topic for tracked objects (Galactic format)"/>
+
+  <!-- Galactic perception test publisher node -->
+  <node pkg="perception_relay" exec="galactic_perception_test_publisher" name="galactic_perception_test_publisher" output="screen">
+    <!-- Input: Ground truth from dummy perception (Humble format) -->
+    <remap from="~/input/ground_truth_objects" to="$(var input_ground_truth_topic)"/>
+
+    <!-- Output: Galactic format messages (to perception_relay) -->
+    <remap from="~/output/predicted_objects" to="$(var output_predicted_objects_topic)"/>
+    <remap from="~/output/detected_objects" to="$(var output_detected_objects_topic)"/>
+    <remap from="~/output/tracked_objects" to="$(var output_tracked_objects_topic)"/>
+  </node>
+</launch>

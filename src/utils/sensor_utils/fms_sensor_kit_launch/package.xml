@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>fms_sensor_kit_launch</name>
+  <version>0.1.0</version>
+  <description>Minimal sensor kit launch for FMS-only mode</description>
+  <maintainer email="dev@zpmc.com">ZPMC Dev</maintainer>
+  <license>Apache License 2.0</license>
+
+  <buildtool_depend>ament_cmake_auto</buildtool_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

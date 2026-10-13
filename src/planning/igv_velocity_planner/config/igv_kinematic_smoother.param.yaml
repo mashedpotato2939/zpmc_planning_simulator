@@ -1,0 +1,120 @@
+# Merged config for fms_kinematic_smoother — port of upstream
+# autoware_velocity_smoother's default_common + default_velocity_smoother +
+# Analytical YAMLs. Values are byte-for-byte copies of the operator-tuned
+# upstream defaults; do not "clean up" without operator sign-off.
+#
+# JerkFiltered / L2 / Linf algorithm-specific keys are intentionally omitted
+# (only the Analytical algorithm is built into this node).
+/**:
+  ros__parameters:
+    # ---------------------------------------------------------------------
+    # default_common — jerk/accel/decel envelope
+    # ---------------------------------------------------------------------
+    max_vel: 11.1           # max velocity limit [m/s]
+
+    normal:
+      min_acc: -0.5         # min deceleration [m/ss]
+      max_acc: 1.0          # max acceleration [m/ss]
+      min_jerk: -0.5        # min jerk [m/sss]
+      max_jerk: 1.0         # max jerk [m/sss]
+
+    # constraints to be observed (used by external_velocity_limit path)
+    limit:
+      min_acc: -2.5
+      max_acc: 1.0
+      min_jerk: -1.5
+      max_jerk: 1.5
+
+    # ---------------------------------------------------------------------
+    # default_velocity_smoother — motion-state / engage / resample
+    # ---------------------------------------------------------------------
+    max_velocity: 20.0      # absolute ceiling on planned velocity [m/s]
+    stop_decel: 0.0         # deceleration applied at a stop point [m/ss] (0 = hard stop)
+
+    margin_to_insert_external_velocity_limit: 0.3   # look-ahead margin for inserting an external speed cap [m]
+
+    # curve / lateral-accel filter
+    # Tuned for IGV 4WS Q-turn tracking (bag planning_control_20260527_052142
+    # showed the prior {max_lateral_accel=0.8, min_curve_velocity=2.74, max_steering_angle_rate=40}
+    # let v stay at 2.74 m/s through a ~6 m-radius elbow — well past the
+    # controller's tracking envelope, producing 1.4 m of lateral drift).
+    # curvature_calculation_distance reduced to 2.0 m so sharp ~6 m-radius
+    # elbows aren't smeared into a near-straight chord by the 5 m baseline.
+    curvature_calculation_distance: 2.0   # arc length over which path curvature is estimated [m]
+    enable_lateral_acc_limit: true        # cap velocity so lateral accel through curves stays bounded
+    max_lateral_accel: 0.6                 # max allowed lateral acceleration in curves [m/ss]
+    min_curve_velocity: 1.0                # velocity floor in curves (never decel below this) [m/s]
+    decel_distance_before_curve: 3.5       # distance ahead of a curve to begin decelerating [m]
+    decel_distance_after_curve: 2.0        # distance after a curve over which to resume speed [m]
+    min_decel_for_lateral_acc_lim_filter: -2.5   # max decel the lateral-accel filter may command [m/ss]
+    enable_steering_rate_limit: true       # cap velocity so steering-angle rate stays bounded
+    max_steering_angle_rate: 25.0          # max allowed steering angle rate [deg/s]
+    resample_ds: 0.1                       # spatial resample interval for the lateral-accel filter [m]
+    curvature_threshold: 0.02              # curvature below this is treated as straight [1/m]
+
+    # engage / replan
+    replan_vel_deviation: 5.53             # velocity error vs current ego that triggers a replan [m/s]
+    engage_velocity: 0.25                  # target velocity used to start moving from standstill [m/s]
+    engage_acceleration: 0.1               # acceleration applied during the engage phase [m/ss]
+    engage_exit_ratio: 0.5                 # exit engage once velocity reaches this fraction of engage_velocity
+    stop_dist_to_prohibit_engage: 0.5      # don't engage if a stop point is within this distance [m]
+
+    # stop velocity
+    stopping_velocity: 2.778               # creep velocity approaching a stop point [m/s]
+    stopping_distance: 0.0                 # distance over which creep velocity is held before the stop [m]
+
+    # path extraction
+    extract_ahead_dist: 200.0              # path distance kept ahead of ego for smoothing [m]
+    extract_behind_dist: 5.0               # path distance kept behind ego for smoothing [m]
+    delta_yaw_threshold: 1.0472            # max yaw jump between points before truncating the path [rad] (60 deg)
+
+    # resampling for optimization
+    max_trajectory_length: 200.0           # max trajectory length fed to the optimizer [m]
+    min_trajectory_length: 150.0           # min trajectory length fed to the optimizer [m]
+    resample_time: 2.0                     # time horizon used for time-based resampling [s]
+    dense_resample_dt: 0.2                 # time step for the dense (near-field) resample region [s]
+    dense_min_interval_distance: 0.1       # min point spacing in the dense region [m]
+    sparse_resample_dt: 0.5                # time step for the sparse (far-field) resample region [s]
+    sparse_min_interval_distance: 4.0      # min point spacing in the sparse region [m]
+
+    # post-resampling (output to motion_control)
+    post_max_trajectory_length: 300.0      # max length of the post-smoothing output trajectory [m]
+    post_min_trajectory_length: 30.0       # min length of the post-smoothing output trajectory [m]
+    post_resample_time: 10.0               # time horizon for post-smoothing resampling [s]
+    post_dense_resample_dt: 0.1            # output time step in the dense region [s]
+    post_dense_min_interval_distance: 0.1  # output min point spacing in the dense region [m]
+    post_sparse_resample_dt: 0.1           # output time step in the sparse region [s]
+    post_sparse_min_interval_distance: 1.0 # output min point spacing in the sparse region [m]
+
+    # ego nearest-index thresholds (used by findFirstNearestIndexWithSoftConstraints)
+    ego_nearest_dist_threshold: 3.0        # max distance for matching ego to a trajectory point [m]
+    ego_nearest_yaw_threshold: 1.046       # max yaw difference for matching ego to a trajectory point [rad] (60 deg)
+
+    # ---------------------------------------------------------------------
+    # Analytical algorithm parameters (only algorithm built in this node)
+    # ---------------------------------------------------------------------
+    resample:
+      ds_resample: 0.1          # spatial resample interval for the Analytical solver [m]
+      num_resample: 1           # number of sub-samples inserted per interval
+      delta_yaw_threshold: 0.785  # max yaw jump before truncating the path [rad] (45 deg)
+
+    latacc:
+      enable_constant_velocity_while_turning: false  # hold a constant velocity through turns instead of shaping it
+      constant_velocity_dist_threshold: 2.0          # turn-length threshold for applying constant velocity [m]
+
+    # forward (accelerating) pass — jerk-limited speed-up profile
+    forward:
+      max_acc: 1.0              # max acceleration [m/ss]
+      min_acc: -1.0             # min acceleration (decel) allowed in the forward pass [m/ss]
+      max_jerk: 0.3             # max jerk [m/sss]
+      min_jerk: -0.3            # min jerk [m/sss]
+      kp: 0.3                   # proportional gain shaping the velocity approach
+
+    # backward (decelerating-to-stop) pass — jerk-limited braking profile
+    backward:
+      start_jerk: -0.1          # initial jerk when braking begins [m/sss]
+      min_jerk_mild_stop: -0.3  # min jerk for a gentle stop [m/sss]
+      min_jerk: -1.5            # min jerk for a hard stop [m/sss]
+      min_acc_mild_stop: -1.0   # min acceleration for a gentle stop [m/ss]
+      min_acc: -2.5             # min acceleration for a hard stop [m/ss]
+      span_jerk: -0.01          # jerk applied over the braking span [m/sss]

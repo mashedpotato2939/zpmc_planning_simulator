@@ -1,0 +1,41 @@
+/**:
+  ros__parameters:
+    # Trajectory tracker (4WS preview-point controller — used for every maneuver)
+    trk_omega: 15.0                # tracking-differentiator bandwidth
+    t_interval: 0.02              # [s] controller timestep (matches 20 ms timer)
+    # Geometry fallbacks. When a vehicle_param_file is loaded, vehicle_info.param.yaml's
+    # wheel_base and max_steer_angle override these legacy motion_control names.
+    wheelbase: 2.3                # [m] fallback for launches without vehicle_info.param.yaml
+    wheelbase_ratio: 1.0          # axis2/3 vs axis1/4 wheelbase ratio (50/116)
+    max_steering_angle: 0.6      # [rad] fallback for launches without max_steer_angle
+    delta_limit: 0.6              # [rad] absolute clamp on base crab steer angle (~30 deg)
+    d_delta_limit: 0.6            # [rad] absolute clamp on front/rear differential (~5.7 deg)
+    predicted_time: 0.2           # [s] preview horizon
+    # Gains raised after bag planning_control_20260527_052142: with vx≈2.7 m/s,
+    # ky=0.3 → ky/vx ≈ 0.11 rad/m, too weak to claw back a 1 m drift before the
+    # next replan landed (~3 s window). 0.6 doubles the lateral response without
+    # entering the oscillation regime documented in troubleshooting.md sig. 3.
+    trk_ky: 3.0                   # lateral error gain (forward)
+    # NOTE: ky_reverse must be POSITIVE. The reverse formula has a leading
+    # minus: delta_motion = -ky_reverse/vx * ey. After the body-frame flip,
+    # axis_body = -delta_motion = +ky_reverse/vx * ey. For ey > 0 (path at
+    # motion-left = body-right), we need axis_body > 0 (wheels body-LEFT),
+    # because in REVERSE the 4WS crab equation vy_body = vel * tan(δ_body)
+    # has vel < 0, so wheels-left produces body-right translation (toward
+    # the path). A negative ky_reverse crabs the vehicle AWAY from the path.
+    trk_ky_reverse: 3.0           # lateral error gain (reverse)
+    trk_kvy: 0.0                  # lateral velocity error gain
+    trk_kcom: 0.05                 # velocity feedforward gain
+    trk_kyaw: 6.0                 # heading error gain (forward)
+    # NOTE: kyaw_reverse must be POSITIVE. In reverse mode calcSteerCmd negates
+    # axis1/axis4 for body frame, so d_delta_body = -d_delta_motion. With
+    # v_body < 0, ω_body = v_body * (-2 * d_delta_motion) / L; for eyaw > 0
+    # (path CCW of vehicle) we need ω_body > 0, which requires d_delta_motion > 0,
+    # which requires kyaw_reverse > 0. A negative value drives the vehicle off
+    # the trajectory.
+    trk_kyaw_reverse: 6.0         # heading error gain (reverse), same magnitude as forward
+    trk_vxmin: 0.3                # [m/s] min vx for proportional scaling
+    is_forward: true              # initial driving direction (flipped by /planning/reverse_state)
+    use_traj_server: false        # if true, request offline map/trajectory at startup
+    publish_trajectory_debug: true
+    trajectory_debug_interval: 1.0 # [s] refresh yaw/kappa/beta-vs-s debug curves

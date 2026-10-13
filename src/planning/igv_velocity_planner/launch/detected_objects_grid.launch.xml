@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!--
+  Standalone launcher for the detected_objects_to_grid node. The component
+  launch file (tier4_planning_component_fms.launch.xml) launches the node
+  directly with the production remaps; this file is provided for ad-hoc
+  testing.
+-->
+<launch>
+  <arg name="detected_objects_topic"
+       default="/perception/object_recognition/detection/objects"/>
+  <arg name="odometry_topic"
+       default="/localization/kinematic_state"/>
+  <arg name="output_topic"
+       default="/planning/igv_velocity_planner/detections_occupancy_grid"/>
+
+  <node pkg="igv_velocity_planner" exec="detected_objects_to_grid"
+        name="detected_objects_to_grid" output="screen">
+    <param from="$(find-pkg-share igv_velocity_planner)/config/detected_objects_grid.param.yaml"/>
+
+    <remap from="~/input/detected_objects" to="$(var detected_objects_topic)"/>
+    <remap from="~/input/odometry" to="$(var odometry_topic)"/>
+    <remap from="~/output/occupancy_grid" to="$(var output_topic)"/>
+  </node>
+</launch>

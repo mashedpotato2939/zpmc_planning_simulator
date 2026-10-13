@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <!--
+    Perception Relay Launch File
+
+    Converts perception messages from autoware_auto_perception_msgs (Galactic)
+    to autoware_perception_msgs (Humble) format for real vehicle operation.
+  -->
+
+  <!-- Input topic arguments (Galactic perception output) -->
+  <arg name="input_predicted_objects_topic" default="/perception/map_based_prediction/objects"
+       description="Input topic for predicted objects (Galactic format)"/>
+  <arg name="input_detected_objects_topic" default="/perception/object_merger/objects"
+       description="Input topic for detected objects (Galactic format)"/>
+  <arg name="input_tracked_objects_topic" default="/perception/multi_object_tracker/objects"
+       description="Input topic for tracked objects (Galactic format)"/>
+
+  <!-- Output topic arguments (Humble planning input) -->
+  <arg name="output_predicted_objects_topic" default="/perception/object_recognition/objects"
+       description="Output topic for predicted objects (Humble format)"/>
+  <arg name="output_detected_objects_topic" default="/perception/object_recognition/detection/objects"
+       description="Output topic for detected objects (Humble format)"/>
+  <arg name="output_tracked_objects_topic" default="/perception/object_recognition/tracking/objects"
+       description="Output topic for tracked objects (Humble format)"/>
+
+  <!-- Perception relay node -->
+  <node pkg="perception_relay" exec="perception_relay_node" name="perception_relay" output="screen">
+    <!-- Predicted Objects Mapping (Galactic -> Humble) -->
+    <remap from="~/input/predicted_objects" to="$(var input_predicted_objects_topic)"/>
+    <remap from="~/output/predicted_objects" to="$(var output_predicted_objects_topic)"/>
+
+    <!-- Detected Objects Mapping (Galactic -> Humble) -->
+    <remap from="~/input/detected_objects" to="$(var input_detected_objects_topic)"/>
+    <remap from="~/output/detected_objects" to="$(var output_detected_objects_topic)"/>
+
+    <!-- Tracked Objects Mapping (Galactic -> Humble) -->
+    <remap from="~/input/tracked_objects" to="$(var input_tracked_objects_topic)"/>
+    <remap from="~/output/tracked_objects" to="$(var output_tracked_objects_topic)"/>
+  </node>
+</launch>

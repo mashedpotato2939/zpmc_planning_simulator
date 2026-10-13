@@ -1,0 +1,67 @@
+// Copyright 2022 TIER IV, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef INITIAL_POSE_ADAPTOR_HPP_
+#define INITIAL_POSE_ADAPTOR_HPP_
+
+#include <autoware/adapi_specs/localization.hpp>
+#include <autoware/component_interface_utils/rclcpp.hpp>
+#include <rclcpp/rclcpp.hpp>
+
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <geometry_msgs/msg/point.hpp>
+#include <optional>
+
+namespace ad_api_adaptors
+{
+
+// Simple stub implementation for MapHeightFitter since the package is missing
+class MapHeightFitter
+{
+public:
+  explicit MapHeightFitter(rclcpp::Node* node) : node_(node) {}
+  
+  std::optional<geometry_msgs::msg::Point> fit(
+    const geometry_msgs::msg::Point& position, 
+    const std::string& frame_id)
+  {
+    // For now, just return the original position without height fitting
+    // This can be enhanced later when the proper package is available
+    (void)frame_id;  // Suppress unused parameter warning
+    return position;
+  }
+
+private:
+  rclcpp::Node* node_;
+};
+
+class InitialPoseAdaptor : public rclcpp::Node
+{
+public:
+  explicit InitialPoseAdaptor(const rclcpp::NodeOptions & options);
+
+private:
+  using PoseWithCovarianceStamped = geometry_msgs::msg::PoseWithCovarianceStamped;
+  using Initialize = autoware::adapi_specs::localization::Initialize;
+  rclcpp::Subscription<PoseWithCovarianceStamped>::SharedPtr sub_initial_pose_;
+  autoware::component_interface_utils::Client<Initialize>::SharedPtr cli_initialize_;
+  std::array<double, 36> rviz_particle_covariance_;
+  MapHeightFitter fitter_;
+
+  void on_initial_pose(const PoseWithCovarianceStamped::ConstSharedPtr msg);
+};
+
+}  // namespace ad_api_adaptors
+
+#endif  // INITIAL_POSE_ADAPTOR_HPP_

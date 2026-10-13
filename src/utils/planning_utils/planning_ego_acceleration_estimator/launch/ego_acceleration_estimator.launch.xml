@@ -1,0 +1,15 @@
+<launch>
+  <arg name="param_file"
+       default="$(find-pkg-share planning_ego_acceleration_estimator)/config/ego_acceleration_estimator.param.yaml"/>
+  <arg name="input_topic" default="/localization/kinematic_state"/>
+  <arg name="output_topic" default="/planning/acceleration"/>
+
+  <node pkg="planning_ego_acceleration_estimator"
+        exec="ego_acceleration_estimator_node"
+        name="ego_acceleration_estimator"
+        output="screen">
+    <param from="$(var param_file)"/>
+    <param name="input_topic" value="$(var input_topic)"/>
+    <param name="output_topic" value="$(var output_topic)"/>
+  </node>
+</launch>

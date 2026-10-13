@@ -1,0 +1,59 @@
+{
+    "job_id": "job_01",
+    "orientation": 1,
+    "points": [
+        {
+            "heading": -0.7186,
+            "is_reverse": true,
+            "speed": 5,
+            "type_enum": 2,
+            "type_text": "LC_START",
+            "x": 33.81,
+            "y": -20.97,
+            "z": 0
+        },
+        {
+            "heading": -0.7063,
+            "is_reverse": true,
+            "speed": 5,
+            "type_enum": 3,
+            "type_text": "LC_END",
+            "x": 48.64,
+            "y": -36.85,
+            "z": 0
+        },
+        {
+            "heading": -0.7335,
+            "is_reverse": true,
+            "speed": 5,
+            "type_enum": 5,
+            "type_text": "LOCAL_PLAN_START",
+            "x": 55.75,
+            "y": -43.2,
+            "z": 0
+        },
+        {
+            "heading": -2.3009,
+            "is_reverse": true,
+            "speed": 5,
+            "type_enum": 6,
+            "type_text": "LOCAL_PLAN_END",
+            "x": 56.64,
+            "y": -59.97,
+            "z": 0
+        },
+        {
+            "heading": -2.2784,
+            "is_reverse": true,
+            "speed": 5,
+            "type_enum": 1,
+            "type_text": "DESTINATION",
+            "x": 51.83,
+            "y": -65.39,
+            "z": 0
+        }
+    ],
+    "route_id": "test_004",
+    "task_id": "task_01",
+    "vehicle_id": "v001"
+}

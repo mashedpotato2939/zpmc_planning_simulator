@@ -1,0 +1,17 @@
+# Perception Relay Parameters
+#
+# This file contains configurable parameters for the perception_relay node.
+# Currently, the relay performs direct message conversion without additional
+# processing, so no parameters are required. This file is provided for
+# future extensibility.
+
+/**:
+  ros__parameters:
+    # Reserved for future parameters
+    # Example parameters that could be added:
+    # - enable_predicted_objects: true
+    # - enable_detected_objects: true
+    # - enable_tracked_objects: true
+    # - filter_by_distance: false
+    # - max_distance: 100.0
+    pass: true

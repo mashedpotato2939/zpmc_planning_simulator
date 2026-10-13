@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <!-- Arguments -->
+  <arg name="vehicle_model" default="igv_vehicle" description="vehicle model name"/>
+  <arg name="rviz_config" default="$(find-pkg-share autoware_launch)/rviz/autoware.rviz" description="rviz config path"/>
+  <arg name="rviz_respawn" default="true" description="respawn rviz if it crashes"/>
+
+  <!-- RViz node with vehicle parameters -->
+  <node
+    pkg="rviz2"
+    exec="rviz2"
+    name="rviz2"
+    output="screen"
+    args="-d $(var rviz_config) -s $(find-pkg-share autoware_launch)/rviz/image/autoware.png"
+    respawn="$(var rviz_respawn)"
+  >
+    <env name="QT_QPA_PLATFORMTHEME" value="qt5ct"/>
+    <param from="$(find-pkg-share $(var vehicle_model)_description)/config/vehicle_info.param.yaml"/>
+  </node>
+</launch>

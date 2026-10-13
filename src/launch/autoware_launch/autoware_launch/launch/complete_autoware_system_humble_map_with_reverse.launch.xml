@@ -1,0 +1,313 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    Complete Autoware System Launch with "humble" suffixed map module
+    This launch file is identical to complete_autoware_system.launch.xml but uses
+    the humble-suffixed map module to avoid conflicts with other ROS distro versions.
+    Added two(reverse) map loading support
+  -->
+
+  <!-- ===================== ARGUMENTS ===================== -->
+
+  <!-- Map and vehicle parameters -->
+  <arg name="map_path" default="/igv/map/nanhui-map" description="point cloud and lanelet2 map directory path"/>
+  <arg name="vehicle_model" default="igv_vehicle" description="vehicle model name"/>
+  <arg name="sensor_model" default="sample_sensor_kit" description="sensor model name"/>
+  <arg name="vehicle_id" default="v001" description="vehicle id"/>
+
+  <!-- Perception -->
+  <arg name="perception_mode" default="lidar" description="select perception mode. camera_lidar_radar_fusion, camera_lidar_fusion, lidar_radar_fusion, lidar, radar"/>
+  <arg name="traffic_light_recognition/enable_fine_detection" default="false" description="enable traffic light fine detection"/>
+  <arg name="data_path" default="/autoware_data" description="packages data and artifacts directory path"/>
+
+
+  <!-- Map files -->
+  <arg name="lanelet2_map_file" default="nanhui0519.osm" description="lanelet2 map file name"/>
+  <arg name="lanelet2_map_file_reversed" default="lanelet2_map_reversed.osm" description="reversed lanelet2 map file name"/>
+  <arg name="pointcloud_map_file" default="pointcloud_map.pcd" description="pointcloud map file name"/>
+
+  <!-- Container settings -->
+  <arg name="pointcloud_container_name" default="pointcloud_container" description="pointcloud container name"/>
+  <arg name="use_multithread" default="true" description="use multithread for pointcloud container"/>
+
+  <!-- Planning settings -->
+  <arg name="module_preset" default="default" description="planning module preset"/>
+  <arg name="enable_all_modules_auto_mode" default="true" description="enable all module's auto mode"/>
+  <arg name="is_simulation" default="true" description="simulation mode"/>
+
+  <!-- Vehicle interface -->
+  <arg name="launch_vehicle_interface" default="true" description="launch vehicle interface"/>
+  <arg name="initial_engage_state" default="true" description="/vehicle/engage state after starting Autoware"/>
+
+  <!-- RViz visualization -->
+  <arg name="launch_rviz" default="true" description="launch RViz visualization"/>
+  <arg name="rviz_config" default="$(find-pkg-share autoware_launch)/rviz/autoware.rviz" description="rviz config path"/>
+  <arg name="rviz_respawn" default="true" description="respawn rviz if it crashes"/>
+
+  <!-- Perception launch control -->
+  <arg name="launch_perception" default="true" description="launch real perception pipeline (set false for simulation)"/>
+
+  <!-- System component parameters -->
+  <arg name="system_run_mode" default="online" description="run mode in system"/>
+  <arg name="launch_system_monitor" default="false" description="launch system monitor"/>
+  <arg name="launch_dummy_diag_publisher" default="false" description="launch dummy diag publisher"/>
+  <arg name="diagnostic_graph_aggregator_param_path" default="$(find-pkg-share diagnostic_graph_aggregator)/config/default.param.yaml"/>
+  <arg name="diagnostic_graph_aggregator_graph_path" default="$(find-pkg-share autoware_launch)/config/system/diagnostic_graph_aggregator/autoware-main.yaml"/>
+
+  <!-- Control component parameters -->
+  <arg name="lateral_controller_mode" default="pure_pursuit"/>
+  <arg name="longitudinal_controller_mode" default="pid"/>
+  <arg name="use_individual_control_param" default="false"/>
+  <arg name="use_aeb_autoware_state_check" default="true"/>
+  <arg name="enable_autonomous_emergency_braking" default="true"/>
+  <arg name="enable_predicted_path_checker" default="false"/>
+  <arg name="enable_collision_detector" default="false"/>
+  <arg name="check_external_emergency_heartbeat" default="false"/>
+  <arg name="latlon_controller_param_path_dir" default=""/>
+
+  <!-- API component parameters -->
+  <arg name="scenario_simulation" default="false"/>
+  <arg name="launch_deprecated_api" default="$(var scenario_simulation)"/>
+
+  <!-- Simulator component parameters -->
+  <arg name="launch_dummy_perception" default="true"/>
+  <arg name="launch_dummy_vehicle" default="true"/>
+  <arg name="localization_sim_mode" default="api"/>
+  <arg name="launch_dummy_doors" default="true"/>
+  <arg name="launch_scenario_simulator_v2_adapter" default="false"/>
+  <arg name="perception/enable_detection_failure" default="true"/>
+  <arg name="perception/enable_object_recognition" default="true"/>
+  <arg name="perception/use_base_link_z" default="true"/>
+  <arg name="sensing/visible_range" default="300.0"/>
+  <arg name="fault_injection_param_path" default="$(find-pkg-share autoware_launch)/config/simulator/fault_injection.param.yaml"/>
+  <arg name="occupancy_grid_map_updater" default="binary_bayes_filter" description="options: binary_bayes_filter"/>
+
+  <!-- Localization initialization parameters -->
+  <arg name="user_defined_initial_pose/enable" default="true" description="Enable automatic localization initialization with predefined pose"/>
+  <arg name="user_defined_initial_pose/pose" default="[80.0, 20.0, 0.0, 0.0, 0.0, 0.0, 1.0]" description="Initial pose [x, y, z, qx, qy, qz, qw] in map frame"/>
+
+  <!-- ===================== GLOBAL PARAMETERS ===================== -->
+  <group scoped="false">
+    <include file="$(find-pkg-share global_parameter_loader)/launch/global_params.launch.py">
+      <arg name="use_sim_time" value="false"/>
+      <arg name="vehicle_model" value="$(var vehicle_model)"/>
+    </include>
+  </group>
+
+  <!-- ===================== LAUNCH COMPONENTS ===================== -->
+
+  <!-- 1. System Component -->
+  <!-- NOTE: Using humble-specific topics configuration to monitor _humble suffixed map topics -->
+  <include file="$(find-pkg-share tier4_system_launch)/launch/system.launch.xml">
+    <arg name="run_mode" value="$(var system_run_mode)"/>
+    <arg name="launch_system_monitor" value="$(var launch_system_monitor)"/>
+    <arg name="launch_dummy_diag_publisher" value="$(var launch_dummy_diag_publisher)"/>
+    <arg name="sensor_model" value="$(var sensor_model)"/>
+    <arg name="component_state_monitor_topic_path" value="$(find-pkg-share autoware_launch)/config/system/component_state_monitor/topics_humble.yaml"/>
+    <arg name="duplicated_node_checker_param_path" value="$(find-pkg-share autoware_launch)/config/system/duplicated_node_checker/duplicated_node_checker.param.yaml"/>
+    <arg name="processing_time_checker_param_path" value="$(find-pkg-share autoware_launch)/config/system/processing_time_checker/processing_time_checker.param.yaml"/>
+    <arg name="mrm_comfortable_stop_operator_param_path" value="$(find-pkg-share autoware_launch)/config/system/mrm_comfortable_stop_operator/mrm_comfortable_stop_operator.param.yaml"/>
+    <arg name="mrm_emergency_stop_operator_param_path" value="$(find-pkg-share autoware_launch)/config/system/mrm_emergency_stop_operator/mrm_emergency_stop_operator.param.yaml"/>
+    <arg name="dummy_diag_publisher_param_path" value="$(find-pkg-share autoware_launch)/config/system/dummy_diag_publisher/dummy_diag_publisher.param.yaml"/>
+    <arg name="system_monitor_cpu_monitor_param_path" value="$(find-pkg-share autoware_launch)/config/system/system_monitor/cpu_monitor.param.yaml"/>
+    <arg name="system_monitor_gpu_monitor_param_path" value="$(find-pkg-share autoware_launch)/config/system/system_monitor/gpu_monitor.param.yaml"/>
+    <arg name="system_monitor_hdd_monitor_param_path" value="$(find-pkg-share autoware_launch)/config/system/system_monitor/hdd_monitor.param.yaml"/>
+    <arg name="system_monitor_mem_monitor_param_path" value="$(find-pkg-share autoware_launch)/config/system/system_monitor/mem_monitor.param.yaml"/>
+    <arg name="system_monitor_net_monitor_param_path" value="$(find-pkg-share autoware_launch)/config/system/system_monitor/net_monitor.param.yaml"/>
+    <arg name="system_monitor_ntp_monitor_param_path" value="$(find-pkg-share autoware_launch)/config/system/system_monitor/ntp_monitor.param.yaml"/>
+    <arg name="system_monitor_process_monitor_param_path" value="$(find-pkg-share autoware_launch)/config/system/system_monitor/process_monitor.param.yaml"/>
+    <arg name="system_monitor_voltage_monitor_param_path" value="$(find-pkg-share autoware_launch)/config/system/system_monitor/voltage_monitor.param.yaml"/>
+    <arg name="mrm_handler_param_path" value="$(find-pkg-share autoware_launch)/config/system/mrm_handler/mrm_handler.param.yaml"/>
+    <arg name="diagnostic_graph_aggregator_graph_path" value="$(var diagnostic_graph_aggregator_graph_path)"/>
+    <arg name="diagnostic_graph_aggregator_param_path" value="$(var diagnostic_graph_aggregator_param_path)"/>
+  </include>
+
+  <!-- 2. Pointcloud Container -->
+  <include file="$(find-pkg-share autoware_launch)/launch/pointcloud_container.launch.py">
+    <arg name="use_multithread" value="$(var use_multithread)"/>
+    <arg name="container_name" value="$(var pointcloud_container_name)"/>
+  </include>
+
+  <!-- 3. MAP COMPONENT WITH HUMBLE SUFFIX -->
+  <include file="$(find-pkg-share autoware_launch)/launch/components/tier4_map_component_humble.launch.xml">
+    <arg name="map_path" value="$(var map_path)"/>
+    <arg name="lanelet2_map_file" value="$(var lanelet2_map_file)"/>
+    <arg name="lanelet2_map_file_reversed" value="$(var lanelet2_map_file_reversed)"/>
+    <arg name="pointcloud_map_file" value="$(var pointcloud_map_file)"/>
+  </include>
+
+  <!-- 4. Vehicle Component -->
+  <include file="$(find-pkg-share tier4_vehicle_launch)/launch/vehicle.launch.xml">
+    <arg name="vehicle_model" value="$(var vehicle_model)"/>
+    <arg name="sensor_model" value="$(var sensor_model)"/>
+    <arg name="launch_vehicle_interface" value="$(var launch_vehicle_interface)"/>
+    <arg name="initial_engage_state" value="$(var initial_engage_state)"/>
+  </include>
+
+  <!-- 5. Planning Component -->
+  <include file="$(find-pkg-share autoware_launch)/launch/components/tier4_planning_component_v1.launch.xml">
+    <arg name="vehicle_model" value="$(var vehicle_model)"/>
+    <arg name="pointcloud_container_name" value="$(var pointcloud_container_name)"/>
+    <arg name="module_preset" value="$(var module_preset)"/>
+    <arg name="enable_all_modules_auto_mode" value="$(var enable_all_modules_auto_mode)"/>
+    <arg name="is_simulation" value="$(var is_simulation)"/>
+    <arg name="map_topic_name" value="/map/vector_map_humble"/>
+  </include>
+
+  <!-- 6. Perception Component -->
+  <!-- NOTE: For simulation, disable this and use simulator perception modules instead -->
+  <group if="$(var launch_perception)">
+    <include file="$(find-pkg-share autoware_launch)/launch/components/tier4_perception_component.launch.xml">
+      <arg name="data_path" value="$(var data_path)"/>
+      <arg name="perception_mode" value="$(var perception_mode)"/>
+      <arg name="traffic_light_recognition/enable_fine_detection" value="$(var traffic_light_recognition/enable_fine_detection)"/>
+    </include>
+  </group>
+
+  <!-- 7. Control Component -->
+  <include file="$(find-pkg-share tier4_control_launch)/launch/control.launch.xml">
+    <!-- option -->
+    <arg name="vehicle_param_file" value="$(find-pkg-share $(var vehicle_model)_description)/config/vehicle_info.param.yaml"/>
+    <arg name="vehicle_id" value="$(var vehicle_id)"/>
+    <arg name="enable_obstacle_collision_checker" value="true"/>
+    <arg name="trajectory_follower_node_param_path" value="$(find-pkg-share autoware_launch)/config/control/trajectory_follower/trajectory_follower_node.param.yaml"/>
+    <arg
+      name="lat_controller_param_path"
+      value="$(find-pkg-share autoware_launch)/config/control/trajectory_follower/$(var latlon_controller_param_path_dir)/lateral/$(var lateral_controller_mode).param.yaml"
+    />
+    <arg
+      name="lon_controller_param_path"
+      value="$(find-pkg-share autoware_launch)/config/control/trajectory_follower/$(var latlon_controller_param_path_dir)/longitudinal/$(var longitudinal_controller_mode).param.yaml"
+    />
+    <arg name="lateral_controller_mode" value="$(var lateral_controller_mode)"/>
+    <arg name="longitudinal_controller_mode" value="$(var longitudinal_controller_mode)"/>
+    <arg name="check_external_emergency_heartbeat" value="$(var check_external_emergency_heartbeat)"/>
+
+    <!-- common param path -->
+    <arg name="nearest_search_param_path" value="$(find-pkg-share autoware_launch)/config/control/common/nearest_search.param.yaml"/>
+
+    <!-- package param path -->
+    <arg name="vehicle_cmd_gate_param_path" value="$(find-pkg-share autoware_launch)/config/control/vehicle_cmd_gate/vehicle_cmd_gate.param.yaml"/>
+    <arg name="lane_departure_checker_param_path" value="$(find-pkg-share autoware_launch)/config/control/lane_departure_checker/lane_departure_checker.param.yaml"/>
+    <arg name="control_validator_param_path" value="$(find-pkg-share autoware_launch)/config/control/control_validator/control_validator.param.yaml"/>
+    <arg name="operation_mode_transition_manager_param_path" value="$(find-pkg-share autoware_launch)/config/control/operation_mode_transition_manager/operation_mode_transition_manager.param.yaml"/>
+    <arg name="shift_decider_param_path" value="$(find-pkg-share autoware_launch)/config/control/shift_decider/shift_decider.param.yaml"/>
+    <arg name="obstacle_collision_checker_param_path" value="$(find-pkg-share autoware_launch)/config/control/obstacle_collision_checker/obstacle_collision_checker.param.yaml"/>
+    <arg name="external_cmd_selector_param_path" value="$(find-pkg-share autoware_launch)/config/control/external_cmd_selector/external_cmd_selector.param.yaml"/>
+    <arg name="aeb_param_path" value="$(find-pkg-share autoware_launch)/config/control/autoware_autonomous_emergency_braking/autonomous_emergency_braking.param.yaml"/>
+    <arg name="collision_detector_param_path" value="$(find-pkg-share autoware_launch)/config/control/autoware_collision_detector/collision_detector.param.yaml"/>
+    <arg name="enable_autonomous_emergency_braking" value="$(var enable_autonomous_emergency_braking)"/>
+    <arg name="use_aeb_autoware_state_check" value="$(var use_aeb_autoware_state_check)"/>
+    <arg name="enable_predicted_path_checker" value="$(var enable_predicted_path_checker)"/>
+    <arg name="enable_collision_detector" value="$(var enable_collision_detector)"/>
+    <arg name="predicted_path_checker_param_path" value="$(find-pkg-share autoware_launch)/config/control/predicted_path_checker/predicted_path_checker.param.yaml"/>
+  </include>
+
+  <!-- 8. Autoware API Component -->
+  <include file="$(find-pkg-share tier4_autoware_api_launch)/launch/autoware_api.launch.xml">
+    <arg name="init_simulator_pose" value="$(var user_defined_initial_pose/pose)"/>
+    <arg name="init_localization_pose" value="$(var user_defined_initial_pose/pose)"/>
+  </include>
+
+  <!-- 9. Simulator Component -->
+  <!-- Configure simulator perception modules based on launch_perception flag -->
+  <let name="sim_use_perception_modules" value="true" unless="$(var launch_perception)"/>
+  <let name="sim_use_perception_modules" value="false" if="$(var launch_perception)"/>
+
+  <include file="$(find-pkg-share tier4_simulator_launch)/launch/simulator.launch.xml">
+    <arg name="launch_dummy_perception" value="$(var launch_dummy_perception)"/>
+    <arg name="launch_dummy_vehicle" value="$(var launch_dummy_vehicle)"/>
+    <arg name="localization_sim_mode" value="$(var localization_sim_mode)"/>
+    <arg name="launch_dummy_doors" value="$(var launch_dummy_doors)"/>
+    <arg name="launch_scenario_simulator_v2_adapter" value="$(var launch_scenario_simulator_v2_adapter)"/>
+    <arg name="perception/enable_detection_failure" value="$(var perception/enable_detection_failure)"/>
+    <arg name="perception/enable_object_recognition" value="$(var perception/enable_object_recognition)"/>
+    <arg name="perception/use_base_link_z" value="$(var perception/use_base_link_z)"/>
+    <arg name="sensing/visible_range" value="$(var sensing/visible_range)"/>
+    <arg name="vehicle_model" value="$(var vehicle_model)"/>
+    <arg name="initial_engage_state" value="$(var initial_engage_state)"/>
+    <arg name="vehicle_info_param_file" value="$(var vehicle_info_param_file)"/>
+    <arg name="raw_vehicle_cmd_converter_param_path" value="$(var raw_vehicle_cmd_converter_param_path)"/>
+    <!-- When launch_perception is false (simulation), enable simulator's tracking/prediction modules -->
+    <!-- When launch_perception is true (real vehicle), disable simulator modules (use real perception instead) -->
+    <arg name="use_perception_launch_modules" value="$(var sim_use_perception_modules)"/>
+
+    <!-- Pass localization initialization parameters -->
+    <arg name="user_defined_initial_pose/enable" value="$(var user_defined_initial_pose/enable)"/>
+    <arg name="user_defined_initial_pose/pose" value="$(var user_defined_initial_pose/pose)"/>
+
+    <arg name="fault_injection_param_path" value="$(var fault_injection_param_path)"/>
+    <arg
+      name="object_recognition_prediction_map_based_prediction_param_path"
+      value="$(find-pkg-share autoware_launch)/config/perception/object_recognition/prediction/map_based_prediction.param.yaml"
+    />
+    <arg
+      name="obstacle_segmentation_ground_segmentation_elevation_map_param_path"
+      value="$(find-pkg-share autoware_launch)/config/perception/obstacle_segmentation/ground_segmentation/elevation_map_parameters.yaml"
+    />
+    <arg
+      name="object_recognition_tracking_multi_object_tracker_data_association_matrix_param_path"
+      value="$(find-pkg-share autoware_launch)/config/perception/object_recognition/tracking/multi_object_tracker/data_association_matrix.param.yaml"
+    />
+    <arg
+      name="object_recognition_tracking_multi_object_tracker_input_channels_param_path"
+      value="$(find-pkg-share autoware_launch)/config/perception/object_recognition/tracking/multi_object_tracker/input_channels.param.yaml"
+    />
+    <arg
+      name="object_recognition_tracking_multi_object_tracker_node_param_path"
+      value="$(find-pkg-share autoware_launch)/config/perception/object_recognition/tracking/multi_object_tracker/multi_object_tracker_node.param.yaml"
+    />
+    <arg name="localization_error_monitor_param_path" value="$(find-pkg-share autoware_launch)/config/localization/localization_error_monitor.param.yaml"/>
+    <arg name="ekf_localizer_param_path" value="$(find-pkg-share autoware_launch)/config/localization/ekf_localizer.param.yaml"/>
+    <arg name="stop_filter_param_path" value="$(find-pkg-share autoware_launch)/config/localization/stop_filter.param.yaml"/>
+    <arg name="pose_initializer_param_path" value="$(find-pkg-share autoware_launch)/config/localization/pose_initializer.param.yaml"/>
+    <arg name="twist2accel_param_path" value="$(find-pkg-share autoware_launch)/config/localization/twist2accel.param.yaml"/>
+    <arg name="laserscan_based_occupancy_grid_map_param_path" value="$(find-pkg-share autoware_launch)/config/perception/occupancy_grid_map/laserscan_based_occupancy_grid_map.param.yaml"/>
+    <arg name="occupancy_grid_map_updater" value="$(var occupancy_grid_map_updater)"/>
+    <arg name="occupancy_grid_map_updater_param_path" value="$(find-pkg-share autoware_launch)/config/perception/occupancy_grid_map/$(var occupancy_grid_map_updater)_updater.param.yaml"/>
+    <arg name="traffic_light_arbiter_param_path" value="$(find-pkg-share autoware_launch)/config/perception/traffic_light_arbiter/traffic_light_arbiter.param.yaml"/>
+
+    <arg
+      name="object_recognition_tracking_radar_object_tracker_data_association_matrix_param_path"
+      value="$(find-pkg-share autoware_launch)/config/perception/object_recognition/tracking/radar_object_tracker/data_association_matrix.param.yaml"
+    />
+    <arg
+      name="object_recognition_tracking_radar_object_tracker_tracking_setting_param_path"
+      value="$(find-pkg-share autoware_launch)/config/perception/object_recognition/tracking/radar_object_tracker/default_tracker.param.yaml"
+    />
+    <arg
+      name="object_recognition_tracking_radar_object_tracker_node_param_path"
+      value="$(find-pkg-share autoware_launch)/config/perception/object_recognition/tracking/radar_object_tracker/radar_object_tracker.param.yaml"
+    />
+    <arg
+      name="object_recognition_tracking_object_merger_data_association_matrix_param_path"
+      value="$(find-pkg-share autoware_launch)/config/perception/object_recognition/tracking/tracking_object_merger/data_association_matrix.param.yaml"
+    />
+    <arg
+      name="object_recognition_tracking_object_merger_node_param_path"
+      value="$(find-pkg-share autoware_launch)/config/perception/object_recognition/tracking/tracking_object_merger/decorative_tracker_merger.param.yaml"
+    />
+  </include>
+
+  <!-- 10. RViz Visualization (Optional) -->
+  <group if="$(var launch_rviz)">
+    <node pkg="rviz2" exec="rviz2" name="rviz2" output="screen" respawn="$(var rviz_respawn)" args="-d $(var rviz_config)">
+      <!-- Remap RViz to use humble map topics for visualization -->
+      <remap from="/map/vector_map" to="/map/vector_map_humble"/>
+      <remap from="/map/pointcloud_map" to="/map/pointcloud_map_humble"/>
+      <remap from="/map/vector_map_marker" to="/map/vector_map_marker_humble"/>
+    </node>
+  </group>
+
+  <!-- 11. Occupancy Grid Publisher (Python node) -->
+  <!-- <executable cmd="python3 $(find-pkg-share autoware_launch)/launch/scripts/publish_occupancy_grid.py" output="screen"/> -->
+
+  <!-- 12. Simple Object Predictor (Converts DetectedObjects to PredictedObjects for simulation)
+  Using DEBUG version for troubleshooting
+  Set enable_debug_log:=false to disable verbose logging -->
+  <!-- COMMENTED OUT:
+  <arg name="simple_predictor_debug_log" default="false" description="Enable detailed debug logging in simple_object_predictor"/>
+  <executable cmd="python3 $(find-pkg-share autoware_launch)/launch/scripts/simple_object_predictor_debug.py [with ros-args -p enable_debug_log:=$(var simple_predictor_debug_log)]" output="screen"/>
+  -->
+
+</launch>

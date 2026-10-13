@@ -1,0 +1,35 @@
+cmake_minimum_required(VERSION 3.14)
+project(autoware_signal_processing)
+
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies()
+
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+endif()
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+ament_auto_add_library(lowpass_filters SHARED
+  src/lowpass_filter_1d.cpp
+  src/lowpass_filter.cpp
+  src/butterworth.cpp)
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_ros REQUIRED)
+
+  ament_add_ros_isolated_gtest(test_signal_processing
+    test/src/lowpass_filter_1d_test.cpp
+    test/src/lowpass_filter_test.cpp
+    test/src/butterworth_filter_test.cpp)
+
+  target_include_directories(test_signal_processing PUBLIC test/include)
+  target_link_libraries(test_signal_processing
+    lowpass_filters)
+
+endif()
+
+ament_auto_package()

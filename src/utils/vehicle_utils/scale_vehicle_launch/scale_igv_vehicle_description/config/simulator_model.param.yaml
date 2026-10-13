@@ -1,0 +1,22 @@
+/**:
+  ros__parameters:
+    simulated_frame_id: "base_link" # center of the vehicle (like igv_vehicle)
+    origin_frame_id: "map"
+    # Use DELAY_STEER_VEL_TWO_AXIS for 4WS support (Q-turn and oblique modes)
+    vehicle_model_type: "DELAY_STEER_VEL_TWO_AXIS"
+    initialize_source: "INITIAL_POSE_TOPIC" #  options: ORIGIN / INITIAL_POSE_TOPIC
+    timer_sampling_time_ms: 25
+    add_measurement_noise: False # the Gaussian noise is added to the simulated results
+    vel_lim: 10.0 # limit of velocity (m/s)
+    vel_rate_lim: 3.0 # limit of acceleration (m/s^2)
+    steer_lim: 0.5 # limit of steering angle (rad)
+    steer_rate_lim: 1.0 # limit of steering angle change rate (rad/s)
+    acc_time_delay: 0.1 # dead time for the acceleration input
+    acc_time_constant: 0.1 # time constant of the 1st-order acceleration dynamics
+    steer_time_delay: 0.2 # dead time for the steering input
+    steer_time_constant: 0.2 # time constant of the 1st-order steering dynamics
+    x_stddev: 0.0001 # x standard deviation for dummy covariance in map coordinate
+    y_stddev: 0.0001 # y standard deviation for dummy covariance in map coordinate
+    # 4WS simulation parameters (for Q-turn and oblique support)
+    enable_4ws_simulation: true # if true, use lateral_velocity_mps from trajectory for 4WS simulation
+    rear_wheelbase: 1.0 # distance from base_link to rear axle [m] (half of wheel_base=2.0)

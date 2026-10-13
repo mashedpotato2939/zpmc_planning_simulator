@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.14)
+project(nanhui_osm_v1)
+find_package(ament_cmake REQUIRED)
+install(FILES nanhui_double_deck_fat_v2.osm global.pcd DESTINATION share/${PROJECT_NAME})
+ament_package()

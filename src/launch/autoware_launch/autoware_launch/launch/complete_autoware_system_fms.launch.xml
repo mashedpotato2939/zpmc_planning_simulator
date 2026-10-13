@@ -1,0 +1,391 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    Complete Autoware System Launch with FMS Trajectory Bridge
+
+    This launch file integrates third-party FMS (Fleet Management System) trajectories
+    into Autoware's planning pipeline while keeping safety features.
+
+    Architecture:
+      FMS Path → fms_path_converter → Path Smoother → Path Optimizer
+                → [Motion Velocity Planner] → Obstacle Cruise Planner
+                → Velocity Smoother → Planning Validator → Control
+
+    Note: Motion Velocity Planner requires vector map and can be skipped for pure FMS control.
+  -->
+
+  <!-- ===================== ARGUMENTS ===================== -->
+
+  <!-- FMS Integration Arguments -->
+  <arg name="fms_enabled" default="true" description="Enable FMS trajectory input"/>
+  <arg name="fms_protocol_type" default="default" description="Protocol plugin: 'default' (ICD-flavoured FMSRouteWindow), 'legacy' (FMSPath); also drives vehicle_agent adapter selection — see use_vehicle_agent / vehicle_agent_adapters."/>
+  <!-- vehicle_agent (v1.2 edge gateway) -->
+  <arg name="use_vehicle_agent" default="true" description="Run vehicle_agent in this launch (the edge gateway between cloud FMS and the planning stack)"/>
+  <arg name="vehicle_agent_adapters" default="" description="Comma-separated VA adapter list. Empty → derived from fms_protocol_type (default→ahtfms_ns, legacy→ahtfms_ns)."/>
+  <arg name="vehicle_agent_scenario_path" default="" description="Scenario YAML for scenario_loopback adapter; ignored otherwise"/>
+  <arg name="vehicle_agent_publish_ns" default="/vehicle_agent" description="Namespace for VA IR publishers"/>
+  <arg name="use_va_route_bridge" default="true" description="Run va_route_bridge that translates IR topics into the FMSRouteWindow/FMSStopPoint shapes fms_path_converter consumes"/>
+  <arg name="fms_topic" default="/fms/reference_path" description="FMS path input topic (legacy)"/>
+  <arg name="fms_json_topic" default="/fms/reference_path_json" description="FMS JSON input topic (legacy)"/>
+  <arg name="use_json_input" default="false" description="Enable JSON string input (legacy)"/>
+  <arg name="route_window_topic" default="/fms/route_window" description="FMS route window topic (default protocol)"/>
+  <arg name="stop_point_topic" default="/fms/stop_point" description="FMS stop point topic (default protocol)"/>
+  <arg name="skip_motion_velocity_planner" default="true" description="Skip motion velocity planner (requires vector map)"/>
+  <arg name="lane_width" default="3.5" description="Lane width for synthetic drivable area (meters)"/>
+  <arg name="generate_drivable_area" default="true" description="Generate synthetic drivable bounds"/>
+  <!-- enable_trajectory_relay was removed when fms_velocity_shaper became the
+       single owner of obstacle-driven velocity in FMS mode (Phase 3 of
+       docs/vehicle_agent/velocity_planner_simplification_plan.md). The shaper
+       publishes directly to scenario_selector/trajectory, so no relay is
+       needed. -->
+  <arg name="enable_trajectory_relay" default="false"
+       description="Deprecated — kept for backward compat. Has no effect in FMS mode."/>
+  <arg name="enable_perception_relay" default="false" description="Enable perception message relay for real vehicle (Galactic to Humble conversion)"/>
+  <arg name="remap_dummy_perception" default="false" description="Remap dummy perception output to /dummy/... for perception relay testing"/>
+
+  <!-- Map and vehicle parameters -->
+  <arg name="map_path" default="$(find-pkg-share nanhui_osm_v1)" description="Lanelet2 and pointcloud map directory"/>
+  <arg name="vehicle_model" default="igv_vehicle" description="vehicle model name"/>
+  <arg name="sensor_model" default="fms_sensor_kit" description="sensor model name"/>
+  <arg name="vehicle_id" default="v001" description="vehicle id"/>
+
+  <!-- Perception -->
+  <arg name="perception_mode" default="lidar" description="select perception mode"/>
+  <arg name="traffic_light_recognition/enable_fine_detection" default="false"/>
+  <arg name="data_path" default="/autoware_data"/>
+
+  <!-- Map files -->
+  <arg name="lanelet2_map_file" default="nanhui_double_deck_fat_v2.osm" description="Lanelet2 map file"/>
+  <arg name="lanelet2_map_file_reversed" default="lanelet2_map_reversed.osm" description="reversed lanelet2 map file name"/>
+  <arg name="pointcloud_map_file" default="global.pcd" description="Pointcloud map file"/>
+
+
+  <!-- Container settings -->
+  <arg name="pointcloud_container_name" default="pointcloud_container"/>
+  <arg name="use_multithread" default="true"/>
+
+  <!-- Planning settings -->
+  <arg name="module_preset" default="default"/>
+  <arg name="enable_all_modules_auto_mode" default="true"/>
+  <arg name="is_simulation" default="true"/>
+
+  <!-- Vehicle interface -->
+  <arg name="launch_vehicle_interface" default="true"/>
+  <arg name="initial_engage_state" default="true"/>
+  <arg name="raw_vehicle_cmd_converter_param_path" default="$(find-pkg-share autoware_raw_vehicle_cmd_converter)/config/raw_vehicle_cmd_converter.param.yaml" description="Path to raw_vehicle_cmd_converter param (used by simulator include when launch_vehicle_component is grouped)"/>
+  <arg name="vehicle_info_param_file" default="$(find-pkg-share $(var vehicle_model)_description)/config/vehicle_info.param.yaml" description="Vehicle info param (used by simulator include; declared at top so it resolves even when map/vehicle groups are gated off)"/>
+
+  <!-- RViz visualization -->
+  <arg name="launch_rviz" default="true"/>
+  <arg name="rviz_config" default="$(find-pkg-share autoware_launch)/rviz/autoware.rviz"/>
+  <arg name="rviz_respawn" default="true"/>
+
+  <!-- Perception launch control -->
+  <arg name="launch_perception" default="true"/>
+
+  <!-- System component parameters (minimal FMS mode - only diagnostic_graph_aggregator) -->
+  <arg name="launch_system" default="true" description="Enable system module with FMS-compatible diagnostics (all modes always OK)"/>
+  <arg name="diagnostic_graph_aggregator_param_path" default="$(find-pkg-share diagnostic_graph_aggregator)/config/default.param.yaml"/>
+  <arg name="diagnostic_graph_aggregator_graph_path" default="$(find-pkg-share autoware_launch)/config/system/diagnostic_graph_aggregator/autoware-fms.yaml"/>
+
+  <!-- Control component parameters -->
+  <arg name="use_motion_control" default="true" description="Use custom motion_control package instead of trajectory_follower"/>
+  <arg name="lateral_controller_mode" default="pure_pursuit"/>
+  <arg name="longitudinal_controller_mode" default="pid"/>
+  <arg name="use_individual_control_param" default="false"/>
+  <arg name="use_aeb_autoware_state_check" default="true"/>
+  <arg name="enable_autonomous_emergency_braking" default="true"/>
+  <arg name="enable_predicted_path_checker" default="false"/>
+  <arg name="enable_collision_detector" default="false"/>
+  <arg name="enable_lane_departure_checker" default="false" description="Disabled in FMS mode - no route available"/>
+  <arg name="check_external_emergency_heartbeat" default="false"/>
+  <arg name="latlon_controller_param_path_dir" default=""/>
+
+  <!-- API component parameters -->
+  <arg name="scenario_simulation" default="false"/>
+  <arg name="launch_deprecated_api" default="$(var scenario_simulation)"/>
+
+  <!-- Control component launch control -->
+  <arg name="launch_control" default="true" description="Launch control component (disable for real vehicle when control handled externally)"/>
+  <arg name="launch_motion_control" default="true" description="Launch internal motion_control follower (disable when external motion_control is provided)"/>
+
+  <!-- Planning component launch control -->
+  <arg name="launch_planning" default="true" description="Launch planning component (disable when planning handled externally)"/>
+
+  <!-- Simulator component launch control -->
+  <arg name="launch_simulator" default="true" description="Launch simulator component (disable for real vehicle)"/>
+
+  <!-- Shared component gates (enable disjoint two-terminal split) -->
+  <arg name="launch_global_params" default="true" description="Launch global_parameter_loader"/>
+  <arg name="launch_pointcloud_container" default="true" description="Launch pointcloud_container"/>
+  <arg name="launch_map" default="true" description="Launch ZPMC vector map loader"/>
+  <arg name="launch_pointcloud_map" default="true" description="Launch pointcloud (.pcd) map loader"/>
+  <arg name="launch_vehicle_component" default="true" description="Launch tier4_vehicle_launch (URDF, robot_state_publisher, vehicle_interface)"/>
+  <arg name="launch_autoware_api" default="true" description="Launch tier4_autoware_api"/>
+  <arg name="launch_simple_object_predictor" default="true" description="Launch fms simple_object_predictor (disable when external perception provides predictions)"/>
+  <arg name="launch_control_infrastructure" default="true" description="Launch control infrastructure (gate/OMT/AEB/shift_decider/validator). Disable to run motion_control standalone."/>
+
+  <!-- Simulator component parameters -->
+  <arg name="launch_dummy_perception" default="true"/>
+  <arg name="launch_dummy_vehicle" default="true"/>
+  <arg name="localization_sim_mode" default="api"/>
+  <arg name="launch_dummy_doors" default="true"/>
+  <arg name="launch_scenario_simulator_v2_adapter" default="false"/>
+  <arg name="perception/enable_detection_failure" default="true"/>
+  <arg name="perception/enable_object_recognition" default="true"/>
+  <arg name="perception/use_base_link_z" default="true"/>
+  <arg name="sensing/visible_range" default="300.0"/>
+  <arg name="fault_injection_param_path" default="$(find-pkg-share autoware_launch)/config/simulator/fault_injection.param.yaml"/>
+  <arg name="occupancy_grid_map_updater" default="binary_bayes_filter"/>
+
+  <!-- Localization initialization parameters -->
+  <arg name="user_defined_initial_pose/enable" default="true"/>
+  <arg name="user_defined_initial_pose/pose" default="[80.0, 20.0, 0.0, 0.0, 0.0, 0.0, 1.0]"/>
+
+  <!-- ===================== GLOBAL PARAMETERS ===================== -->
+  <group scoped="false" if="$(var launch_global_params)">
+    <include file="$(find-pkg-share global_parameter_loader)/launch/global_params.launch.py">
+      <arg name="use_sim_time" value="false"/>
+      <arg name="vehicle_model" value="$(var vehicle_model)"/>
+    </include>
+  </group>
+
+  <!-- ===================== LAUNCH COMPONENTS ===================== -->
+
+  <!--
+    1. System Component (minimal FMS mode - only diagnostic graph aggregator)
+
+    In FMS mode, we only need the diagnostic_graph_aggregator to publish
+    /system/operation_mode/availability (all modes OK). The full system.launch.xml
+    requires many archived packages (mrm_handler, duplicated_node_checker, etc.)
+    that are not built. The FMS diagnostic graph marks all modes as always-OK.
+
+    Note: MRM state is not published, but vehicle_cmd_gate has optional subscription -
+    it won't crash, just keeps is_system_emergency_=false (safe default).
+  -->
+  <group if="$(var launch_system)">
+    <group>
+      <push-ros-namespace namespace="/system"/>
+      <include file="$(find-pkg-share diagnostic_graph_aggregator)/launch/aggregator.launch.xml">
+        <arg name="param_file" value="$(var diagnostic_graph_aggregator_param_path)"/>
+        <arg name="graph_file" value="$(var diagnostic_graph_aggregator_graph_path)"/>
+      </include>
+    </group>
+  </group>
+
+  <!-- 2. Pointcloud Container -->
+  <group if="$(var launch_pointcloud_container)">
+    <include file="$(find-pkg-share autoware_launch)/launch/pointcloud_container.launch.py">
+      <arg name="use_multithread" value="$(var use_multithread)"/>
+      <arg name="container_name" value="$(var pointcloud_container_name)"/>
+    </include>
+  </group>
+
+  <!-- 3. MAP COMPONENT -->
+  <!-- 3a. Lanelet2 vector map -->
+  <group if="$(var launch_map)">
+    <include file="$(find-pkg-share map_loader)/launch/lanelet2_map_loader.launch.xml">
+      <arg name="lanelet2_map_path" value="$(var map_path)/$(var lanelet2_map_file)"/>
+    </include>
+  </group>
+
+  <!-- 3b. Pointcloud map for RViz and localization -->
+  <group if="$(var launch_pointcloud_map)">
+    <include file="$(find-pkg-share map_loader)/launch/pointcloud_map_loader.launch.xml">
+      <arg name="pointcloud_map_path" value="$(var map_path)/$(var pointcloud_map_file)"/>
+    </include>
+  </group>
+
+  <!-- 4. Vehicle Component -->
+  <group if="$(var launch_vehicle_component)">
+    <include file="$(find-pkg-share tier4_vehicle_launch)/launch/vehicle.launch.xml">
+      <arg name="vehicle_model" value="$(var vehicle_model)"/>
+      <arg name="sensor_model" value="$(var sensor_model)"/>
+      <arg name="launch_vehicle_interface" value="$(var launch_vehicle_interface)"/>
+      <arg name="initial_engage_state" value="$(var initial_engage_state)"/>
+    </include>
+  </group>
+
+  <!-- 5. Planning Component with FMS Integration -->
+  <group if="$(var launch_planning)">
+    <include file="$(find-pkg-share igv_launch)/launch/components/tier4_planning_component_fms.launch.xml">
+      <arg name="vehicle_model" value="$(var vehicle_model)"/>
+      <arg name="pointcloud_container_name" value="$(var pointcloud_container_name)"/>
+      <arg name="module_preset" value="$(var module_preset)"/>
+      <arg name="enable_all_modules_auto_mode" value="$(var enable_all_modules_auto_mode)"/>
+      <arg name="is_simulation" value="$(var is_simulation)"/>
+      <!-- map_topic_name removed — FMS nodes use ZPMC HD Map via ZpmcMapClient -->
+      <!-- FMS specific arguments -->
+      <arg name="fms_enabled" value="$(var fms_enabled)"/>
+      <arg name="fms_protocol_type" value="$(var fms_protocol_type)"/>
+      <arg name="fms_topic" value="$(var fms_topic)"/>
+      <arg name="fms_json_topic" value="$(var fms_json_topic)"/>
+      <arg name="use_json_input" value="$(var use_json_input)"/>
+      <arg name="route_window_topic" value="$(var route_window_topic)"/>
+      <arg name="stop_point_topic" value="$(var stop_point_topic)"/>
+      <arg name="skip_motion_velocity_planner" value="$(var skip_motion_velocity_planner)"/>
+      <arg name="lane_width" value="$(var lane_width)"/>
+      <arg name="generate_drivable_area" value="$(var generate_drivable_area)"/>
+    </include>
+
+    <!-- 5b. (Phase 3) trajectory_relay deleted. fms_velocity_shaper publishes
+         directly to /planning/scenario_planning/scenario_selector/trajectory
+         in tier4_planning_component_fms.launch.xml. -->
+
+    <!-- 5c. (retired) FMS Goal Path Generator — replaced by vehicle_agent in v1.2.
+         VA receives missions from the cloud (or scenario_loopback) and republishes
+         them as IR-aligned ROS msgs; goal-based path generation now happens upstream
+         of VA, in the FMS itself or via an operator-side tool. -->
+  </group>
+
+  <!-- 5d. Vehicle Agent (v1.2 edge gateway).
+       Owns the cloud-side protocol (AHTFMS-NS / internal ZPMC MQTT / scenario_loopback),
+       the 9-state mission FSM, the durable offline queue, security envelope, and
+       E-stop fast path. fms_path_converter continues to consume FMSRouteWindow /
+       FMSStopPoint topics; an IR→FMSRouteWindow bridge node remains an open work
+       item (tracked in src/igv/vehicle_agent/README.md). -->
+  <let name="va_adapters_resolved"
+       value="$(eval &quot;'$(var vehicle_agent_adapters)' or {'default':'ahtfms_ns','legacy':'ahtfms_ns','ahtfms_ns':'ahtfms_ns','internal_zpmc':'internal_zpmc','scenario_loopback':'scenario_loopback'}.get('$(var fms_protocol_type)','ahtfms_ns')&quot;)"/>
+  <group if="$(eval &quot;'$(var fms_enabled)' == 'true' and '$(var use_vehicle_agent)' == 'true'&quot;)">
+    <include file="$(find-pkg-share vehicle_agent)/launch/vehicle_agent.launch.py">
+      <arg name="adapters" value="$(var va_adapters_resolved)"/>
+      <arg name="vehicle_id" value="$(var vehicle_id)"/>
+      <arg name="publish_ns" value="$(var vehicle_agent_publish_ns)"/>
+      <arg name="scenario_path" value="$(var vehicle_agent_scenario_path)"/>
+    </include>
+    <!-- 5e. IR → FMSRouteWindow / FMSStopPoint translator. Lets the legacy
+         fms_path_converter consume missions delivered by vehicle_agent,
+         closing the cloud → VA → converter loop. -->
+    <group if="$(var use_va_route_bridge)">
+      <include file="$(find-pkg-share vehicle_agent)/launch/route_bridge.launch.py">
+        <arg name="vehicle_id" value="$(var vehicle_id)"/>
+        <arg name="mission_topic" value="$(var vehicle_agent_publish_ns)/mission"/>
+        <arg name="command_topic" value="$(var vehicle_agent_publish_ns)/command"/>
+        <arg name="route_window_topic" value="$(var route_window_topic)"/>
+        <arg name="stop_point_topic" value="$(var stop_point_topic)"/>
+      </include>
+    </group>
+  </group>
+
+  <!-- 6. Perception Component -->
+  <group if="$(var launch_perception)">
+    <include file="$(find-pkg-share autoware_launch)/launch/components/tier4_perception_component.launch.xml">
+      <arg name="data_path" value="$(var data_path)"/>
+      <arg name="perception_mode" value="$(var perception_mode)"/>
+      <arg name="traffic_light_recognition/enable_fine_detection" value="$(var traffic_light_recognition/enable_fine_detection)"/>
+    </include>
+  </group>
+
+  <!-- 6b. Perception Relay (for real vehicle - converts Galactic messages to Humble format) -->
+  <group if="$(var enable_perception_relay)">
+    <include file="$(find-pkg-share perception_relay)/launch/perception_relay.launch.xml"/>
+  </group>
+
+  <!-- 6c. Simple Object Predictor (replaces map_based_prediction in FMS mode — no map dependency) -->
+  <group if="$(var launch_simple_object_predictor)">
+    <node pkg="igv_velocity_planner" exec="simple_object_predictor" name="simple_object_predictor" output="screen">
+      <param name="prediction_time_horizon" value="3.0"/>
+      <param name="prediction_sampling_dt" value="0.5"/>
+      <remap from="~/input/objects" to="/perception/object_recognition/tracking/objects"/>
+      <remap from="~/output/objects" to="/perception/object_recognition/objects"/>
+    </node>
+  </group>
+
+  <!-- 7. Control Component -->
+  <group if="$(var launch_control)">
+    <include file="$(find-pkg-share tier4_control_launch)/launch/control.launch.xml">
+      <arg name="vehicle_param_file" value="$(find-pkg-share $(var vehicle_model)_description)/config/vehicle_info.param.yaml"/>
+      <arg name="vehicle_id" value="$(var vehicle_id)"/>
+      <arg name="launch_motion_control" value="$(var launch_motion_control)"/>
+      <arg name="launch_control_infrastructure" value="$(var launch_control_infrastructure)"/>
+      <arg name="enable_obstacle_collision_checker" value="false"/>
+      <arg name="enable_lane_departure_checker" value="$(var enable_lane_departure_checker)"/>
+      <arg name="trajectory_follower_node_param_path" value="$(find-pkg-share autoware_launch)/config/control/trajectory_follower/trajectory_follower_node.param.yaml"/>
+      <arg name="lat_controller_param_path" value="$(find-pkg-share autoware_launch)/config/control/trajectory_follower/$(var latlon_controller_param_path_dir)/lateral/$(var lateral_controller_mode).param.yaml"/>
+      <arg name="lon_controller_param_path" value="$(find-pkg-share autoware_launch)/config/control/trajectory_follower/$(var latlon_controller_param_path_dir)/longitudinal/$(var longitudinal_controller_mode).param.yaml"/>
+      <arg name="lateral_controller_mode" value="$(var lateral_controller_mode)"/>
+      <arg name="longitudinal_controller_mode" value="$(var longitudinal_controller_mode)"/>
+      <arg name="check_external_emergency_heartbeat" value="$(var check_external_emergency_heartbeat)"/>
+      <arg name="nearest_search_param_path" value="$(find-pkg-share autoware_launch)/config/control/common/nearest_search.param.yaml"/>
+      <arg name="vehicle_cmd_gate_param_path" value="$(find-pkg-share autoware_launch)/config/control/vehicle_cmd_gate/vehicle_cmd_gate_fms.param.yaml"/>
+      <arg name="lane_departure_checker_param_path" value="$(find-pkg-share autoware_launch)/config/control/lane_departure_checker/lane_departure_checker.param.yaml"/>
+      <arg name="control_validator_param_path" value="$(find-pkg-share autoware_launch)/config/control/control_validator/control_validator.param.yaml"/>
+      <arg name="operation_mode_transition_manager_param_path" value="$(find-pkg-share autoware_launch)/config/control/operation_mode_transition_manager/operation_mode_transition_manager.param.yaml"/>
+      <arg name="shift_decider_param_path" value="$(find-pkg-share autoware_launch)/config/control/shift_decider/shift_decider.param.yaml"/>
+      <arg name="obstacle_collision_checker_param_path" value="$(find-pkg-share autoware_launch)/config/control/obstacle_collision_checker/obstacle_collision_checker.param.yaml"/>
+      <arg name="external_cmd_selector_param_path" value="$(find-pkg-share autoware_launch)/config/control/external_cmd_selector/external_cmd_selector.param.yaml"/>
+      <arg name="aeb_param_path" value="$(find-pkg-share autoware_launch)/config/control/autoware_autonomous_emergency_braking/autonomous_emergency_braking.param.yaml"/>
+      <arg name="collision_detector_param_path" value="$(find-pkg-share autoware_launch)/config/control/autoware_collision_detector/collision_detector.param.yaml"/>
+      <arg name="enable_autonomous_emergency_braking" value="$(var enable_autonomous_emergency_braking)"/>
+      <arg name="use_aeb_autoware_state_check" value="$(var use_aeb_autoware_state_check)"/>
+      <arg name="enable_predicted_path_checker" value="$(var enable_predicted_path_checker)"/>
+      <arg name="enable_collision_detector" value="$(var enable_collision_detector)"/>
+      <arg name="predicted_path_checker_param_path" value="$(find-pkg-share autoware_launch)/config/control/predicted_path_checker/predicted_path_checker.param.yaml"/>
+    </include>
+  </group>
+
+  <!-- 8. Autoware API Component -->
+  <group if="$(var launch_autoware_api)">
+    <include file="$(find-pkg-share tier4_autoware_api_launch)/launch/autoware_api.launch.xml">
+      <arg name="init_simulator_pose" value="$(var user_defined_initial_pose/pose)"/>
+      <arg name="init_localization_pose" value="$(var user_defined_initial_pose/pose)"/>
+    </include>
+  </group>
+
+  <!-- 9. Simulator Component (disabled for real vehicle operation) -->
+  <group if="$(var launch_simulator)">
+    <let name="sim_use_perception_modules" value="true" unless="$(var launch_perception)"/>
+    <let name="sim_use_perception_modules" value="false" if="$(var launch_perception)"/>
+
+    <include file="$(find-pkg-share tier4_simulator_launch)/launch/simulator.launch.xml">
+      <arg name="launch_dummy_perception" value="$(var launch_dummy_perception)"/>
+      <arg name="launch_dummy_vehicle" value="$(var launch_dummy_vehicle)"/>
+      <arg name="localization_sim_mode" value="$(var localization_sim_mode)"/>
+      <arg name="launch_dummy_doors" value="$(var launch_dummy_doors)"/>
+      <arg name="launch_scenario_simulator_v2_adapter" value="$(var launch_scenario_simulator_v2_adapter)"/>
+      <arg name="perception/enable_detection_failure" value="$(var perception/enable_detection_failure)"/>
+      <arg name="perception/enable_object_recognition" value="$(var perception/enable_object_recognition)"/>
+      <arg name="perception/enable_traffic_light" value="false"/>
+      <arg name="perception/use_base_link_z" value="$(var perception/use_base_link_z)"/>
+      <arg name="sensing/visible_range" value="$(var sensing/visible_range)"/>
+      <arg name="vehicle_model" value="$(var vehicle_model)"/>
+      <arg name="initial_engage_state" value="$(var initial_engage_state)"/>
+      <arg name="vehicle_info_param_file" value="$(var vehicle_info_param_file)"/>
+      <arg name="raw_vehicle_cmd_converter_param_path" value="$(var raw_vehicle_cmd_converter_param_path)"/>
+      <arg name="use_perception_launch_modules" value="$(var sim_use_perception_modules)"/>
+      <arg name="remap_dummy_perception" value="$(var remap_dummy_perception)"/>
+      <arg name="user_defined_initial_pose/enable" value="$(var user_defined_initial_pose/enable)"/>
+      <arg name="user_defined_initial_pose/pose" value="$(var user_defined_initial_pose/pose)"/>
+      <arg name="fault_injection_param_path" value="$(var fault_injection_param_path)"/>
+      <arg name="object_recognition_prediction_map_based_prediction_param_path" value="$(find-pkg-share autoware_launch)/config/perception/object_recognition/prediction/map_based_prediction.param.yaml"/>
+      <arg name="obstacle_segmentation_ground_segmentation_elevation_map_param_path" value="$(find-pkg-share autoware_launch)/config/perception/obstacle_segmentation/ground_segmentation/elevation_map_parameters.yaml"/>
+      <arg name="object_recognition_tracking_multi_object_tracker_data_association_matrix_param_path" value="$(find-pkg-share autoware_launch)/config/perception/object_recognition/tracking/multi_object_tracker/data_association_matrix.param.yaml"/>
+      <arg name="object_recognition_tracking_multi_object_tracker_input_channels_param_path" value="$(find-pkg-share autoware_launch)/config/perception/object_recognition/tracking/multi_object_tracker/input_channels.param.yaml"/>
+      <arg name="object_recognition_tracking_multi_object_tracker_node_param_path" value="$(find-pkg-share autoware_launch)/config/perception/object_recognition/tracking/multi_object_tracker/multi_object_tracker_node.param.yaml"/>
+      <arg name="localization_error_monitor_param_path" value="$(find-pkg-share autoware_launch)/config/localization/localization_error_monitor.param.yaml"/>
+      <arg name="ekf_localizer_param_path" value="$(find-pkg-share autoware_launch)/config/localization/ekf_localizer.param.yaml"/>
+      <arg name="stop_filter_param_path" value="$(find-pkg-share autoware_launch)/config/localization/stop_filter.param.yaml"/>
+      <arg name="pose_initializer_param_path" value="$(find-pkg-share autoware_launch)/config/localization/pose_initializer.param.yaml"/>
+      <arg name="twist2accel_param_path" value="$(find-pkg-share autoware_launch)/config/localization/twist2accel.param.yaml"/>
+      <arg name="laserscan_based_occupancy_grid_map_param_path" value="$(find-pkg-share autoware_launch)/config/perception/occupancy_grid_map/laserscan_based_occupancy_grid_map.param.yaml"/>
+      <arg name="occupancy_grid_map_updater" value="$(var occupancy_grid_map_updater)"/>
+      <arg name="occupancy_grid_map_updater_param_path" value="$(find-pkg-share autoware_launch)/config/perception/occupancy_grid_map/$(var occupancy_grid_map_updater)_updater.param.yaml"/>
+      <arg name="traffic_light_arbiter_param_path" value="$(find-pkg-share autoware_launch)/config/perception/traffic_light_arbiter/traffic_light_arbiter.param.yaml"/>
+      <arg name="object_recognition_tracking_radar_object_tracker_data_association_matrix_param_path" value="$(find-pkg-share autoware_launch)/config/perception/object_recognition/tracking/radar_object_tracker/data_association_matrix.param.yaml"/>
+      <arg name="object_recognition_tracking_radar_object_tracker_tracking_setting_param_path" value="$(find-pkg-share autoware_launch)/config/perception/object_recognition/tracking/radar_object_tracker/default_tracker.param.yaml"/>
+      <arg name="object_recognition_tracking_radar_object_tracker_node_param_path" value="$(find-pkg-share autoware_launch)/config/perception/object_recognition/tracking/radar_object_tracker/radar_object_tracker.param.yaml"/>
+      <arg name="object_recognition_tracking_object_merger_data_association_matrix_param_path" value="$(find-pkg-share autoware_launch)/config/perception/object_recognition/tracking/tracking_object_merger/data_association_matrix.param.yaml"/>
+      <arg name="object_recognition_tracking_object_merger_node_param_path" value="$(find-pkg-share autoware_launch)/config/perception/object_recognition/tracking/tracking_object_merger/decorative_tracker_merger.param.yaml"/>
+    </include>
+  </group>
+
+  <!-- 10. RViz Visualization (Optional) -->
+  <group if="$(var launch_rviz)">
+    <node pkg="rviz2" exec="rviz2" name="rviz2" output="screen" respawn="$(var rviz_respawn)" args="-d $(var rviz_config)">
+      <remap from="/map/vector_map" to="/map/vector_map_humble"/>
+      <remap from="/map/pointcloud_map" to="/map/pointcloud_map_humble"/>
+      <remap from="/map/vector_map_marker" to="/map/vector_map_marker_humble"/>
+    </node>
+  </group>
+
+</launch>

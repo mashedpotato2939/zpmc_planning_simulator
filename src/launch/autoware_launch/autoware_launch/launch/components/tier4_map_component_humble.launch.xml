@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    Map Component with "humble" suffix
+    This wrapper launch file includes the tier4_map_launch with _humble suffix
+  -->
+
+  <!-- Accept arguments from parent launch file -->
+  <arg name="map_path" default=""/>
+  <arg name="lanelet2_map_file" default="lanelet2_map.osm"/>
+  <arg name="lanelet2_map_file_reversed" default="lanelet2_map_reversed.osm"/>
+  <arg name="pointcloud_map_file" default="pointcloud_map.pcd"/>
+
+  <include file="$(find-pkg-share tier4_map_launch)/launch/map_humble.launch.py">
+    <arg name="map_path" value="$(var map_path)"/>
+    <arg name="pointcloud_map_path" value="$(var map_path)/$(var pointcloud_map_file)"/>
+    <arg name="pointcloud_map_metadata_path" value="$(var map_path)/pointcloud_map_metadata.yaml"/>
+    <arg name="lanelet2_map_path" value="$(var map_path)/$(var lanelet2_map_file)"/>
+    <arg name="lanelet2_map_path_reversed" value="$(var map_path)/$(var lanelet2_map_file_reversed)"/>
+    <arg name="map_projector_info_path" value="$(var map_path)/map_projector_info.yaml"/>
+  </include>
+</launch>

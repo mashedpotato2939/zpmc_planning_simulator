@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <!-- Define vehicle parameters directly -->
+  <xacro:property name="vehicle_height" value="2.55"/>
+
+  <!-- vehicle body -->
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 ${-vehicle_height/2 + 1.2}" rpy="0 0 ${-pi/2.0}"/>
+      <geometry>
+        <mesh filename="package://igv_vehicle_description/mesh/IGV-4Wheel.fbx" scale="0.01 0.01 0.01"/>
+      </geometry>
+    </visual>
+  </link>
+</robot>

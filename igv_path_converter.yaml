@@ -1,0 +1,85 @@
+/igv_path_converter:
+  ros__parameters:
+    backward_path_length: 1.0
+    crab_avoidance:
+      clearance: 0.5
+      enable: false
+      max_lateral_offset: 3.5
+      max_lateral_second_derivative: 0.12
+      max_lateral_slope: 0.5
+      max_object_speed: 0.5
+      max_shift_length: 40.0
+      min_shift_length: 12.0
+      object_timeout: 1.0
+      return_margin_before_local_plan: 1.0
+    crab_ddymax: 0.5236
+    crab_ddymin: 0.0
+    crab_dymax: 0.5236
+    curvature_4ws_threshold: 0.01
+    default_velocity: 5.0
+    ego_nearest_dist_threshold: 3.0
+    ego_nearest_yaw_threshold: 1.57
+    enable_4ws: true
+    fms_protocol:
+      default:
+        route_topic: ~/input/route_window
+        stop_topic: ~/input/stop_point
+      type: default
+    forward_path_length: 100.0
+    frame_id: map
+    generate_drivable_area: true
+    lane_change_lateral_threshold: 1.5
+    lane_change_velocity_ratio: 0.8
+    lane_width: 3.5
+    lateral_velocity_gain: 1.5
+    left_bound_offset: -1.0
+    map_snap_distance_threshold: 5.0
+    max_lateral_velocity: 2.0
+    max_velocity: 15.0
+    min_lane_change_length: 10.0
+    min_velocity: 0.5
+    oblique_max_lateral_distance: 8.0
+    oblique_speed_limit: 2.0
+    path_generator_debug: false
+    path_interval: 1.0
+    publish_rate: 20.0
+    qos_overrides:
+      /clock:
+        subscription:
+          depth: 1
+          durability: volatile
+          history: keep_last
+          reliability: best_effort
+      /parameter_events:
+        publisher:
+          depth: 1000
+          durability: volatile
+          history: keep_last
+          reliability: reliable
+    qturn_min_radius: 8.5
+    qturn_speed_limit: 2.0
+    qturn_yaw_min_radius: 8.1
+    rear_steer_ratio: 0.5
+    replan_lateral_deviation_threshold: 1.0
+    right_bound_offset: -1.0
+    segment_tracking:
+      ambiguity_margin: 0.25
+      backtrack_tolerance: 1.0
+      connector_max_distance: 50.0
+      connector_max_yaw_error: 0.785
+      endpoint_distance: 0.5
+      max_distance: 10.0
+      max_yaw_error: 1.57
+      progress_slack: 2.0
+      stopped_duration: 1.0
+      stopped_speed: 0.1
+    stale_threshold: 5.0
+    turn_speed: 3.0
+    turn_yaw_threshold: 0.3
+    use_lane_speed_limits: false
+    use_sim_time: true
+    vehicle_front_overhang: 4.5
+    vehicle_id: v001
+    vehicle_length: 15.0
+    vehicle_wheel_base: 6.0
+    vehicle_width: 2.98

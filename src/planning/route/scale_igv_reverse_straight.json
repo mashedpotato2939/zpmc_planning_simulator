@@ -1,0 +1,29 @@
+{
+    "job_id": "job_01",
+    "orientation": 1,
+    "points": [
+        {
+            "heading": -0.697,
+            "is_reverse": true,
+            "speed": 5,
+            "type_enum": 0,
+            "type_text": "NORMAL",
+            "x": 32.43,
+            "y": -22.32,
+            "z": 0
+        },
+        {
+            "heading": -0.7359,
+            "is_reverse": true,
+            "speed": 5,
+            "type_enum": 1,
+            "type_text": "DESTINATION",
+            "x": 40.81,
+            "y": -29.9,
+            "z": 0
+        }
+    ],
+    "route_id": "test_001",
+    "task_id": "task_01",
+    "vehicle_id": "v001"
+}

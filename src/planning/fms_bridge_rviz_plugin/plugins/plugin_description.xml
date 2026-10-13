@@ -1,0 +1,12 @@
+<library path="fms_bridge_rviz_plugin">
+  <class
+    type="fms_bridge_rviz_plugin::FmsBridgePanel"
+    base_class_type="rviz_common::Panel">
+    <description>FMS Bridge Test Panel — send routes, stops, and view status</description>
+  </class>
+  <class
+    type="fms_bridge_rviz_plugin::FmsPointTool"
+    base_class_type="rviz_common::Tool">
+    <description>FMS Pick Point — click the map to publish a pose for the FMS Bridge panel to consume</description>
+  </class>
+</library>

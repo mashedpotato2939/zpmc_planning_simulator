@@ -1,0 +1,34 @@
+cmake_minimum_required(VERSION 3.14)
+project(autoware_control_evaluator)
+
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies()
+
+find_package(pluginlib REQUIRED)
+
+ament_auto_add_library(control_evaluator_node SHARED
+  src/control_evaluator_node.cpp
+  src/metrics/deviation_metrics.cpp
+)
+
+rclcpp_components_register_node(control_evaluator_node
+  PLUGIN "control_diagnostics::ControlEvaluatorNode"
+  EXECUTABLE control_evaluator
+)
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_control_evaluator
+    test/test_control_evaluator_node.cpp
+  )
+  target_link_libraries(test_control_evaluator
+    control_evaluator_node
+  )
+endif()
+
+
+ament_auto_package(
+  INSTALL_TO_SHARE
+    param
+    launch
+)

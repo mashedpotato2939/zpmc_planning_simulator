@@ -1,0 +1,27 @@
+<launch>
+  <arg name="rviz_config" default="$(find-pkg-share motion_control)/rviz/motion_control.rviz"/>
+  <arg name="use_maptraj_server" default="false" />
+  <arg name="vehicle_model" default="igv_vehicle" description="vehicle model name"/>
+  <arg name="vehicle_param_file" default="$(find-pkg-share $(var vehicle_model)_description)/config/vehicle_info.param.yaml"/>
+
+  <!-- engage_transition_manager -->
+  <node pkg="motion_control" exec="control_exe" name="motion_control" output="screen">
+    <param from="$(var vehicle_param_file)"/>
+    <param from="$(find-pkg-share motion_control)/config/motion_control.param.yaml"/>
+
+    <remap from="input/kinematics" to="/localization/kinematic_state"/>
+    <remap from="input/trajectory" to="/planning/scenario_planning/trajectory"/>
+    <remap from="output/control_cmd" to="/control/command/control_cmd"/>
+  </node>
+
+  <group if="$(var use_maptraj_server)">
+    <node pkg="motion_control" exec="map_traj_server_exe" name="map_traj_server" output="screen"> 
+      <remap from="input/kinematics" to="/localization/kinematic_state"/>
+    </node>
+
+    <node pkg="rviz2" exec="rviz2" name="rviz2" output="screen" args="-d $(var rviz_config)">
+      <env name="QT_QPA_PLATFORMTHEME" value="qt5ct"/>
+    </node>
+  </group> 
+  
+</launch>

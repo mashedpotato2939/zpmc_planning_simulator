@@ -1,0 +1,20 @@
+<launch>
+
+  <!-- engage_transition_manager -->
+  <node pkg="motion_control" exec="interface_test_exe" name="interface_test" output="screen">
+    <!-- <param from="$(find-pkg-share simple_trajectory_follower)/config/interface_test.param.yaml" allow_substs="true"/> -->
+    <param name="Kp" value="1.0"/>
+    <param name="Ki" value="0.1"/>
+    <param name="Kd" value="0.05"/>
+    <!-- <param name="rosbag_name" value="odometry"/> -->
+
+    <remap from="shift_cmd" to="/pacmod/shift_cmd"/>
+    <remap from="brake_cmd" to="/pacmod/brake_cmd"/>
+    <remap from="torque_cmd" to="/pacmod/torque_cmd"/>
+    <remap from="motor_vel_cmd" to="/pacmod/motor_vel_cmd"/>
+    <remap from="tire_steer_cmd" to="/pacmod/steering_cmd"/>
+    <remap from="reset_cmd" to="/pacmod/reset_cmd"/>
+    <remap from="emergency_cmd" to="/pacmod/emergency_cmd"/>
+    
+  </node>
+</launch>

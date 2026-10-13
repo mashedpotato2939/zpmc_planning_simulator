@@ -1,0 +1,89 @@
+{
+    "job_id": "job_01",
+    "orientation": 1,
+    "points": [
+        {
+            "heading": 2.3962,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 0,
+            "type_text": "NORMAL",
+            "x": 43.3,
+            "y": -32.26,
+            "z": 0
+        },
+        {
+            "heading": 2.3818,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 0,
+            "type_text": "NORMAL",
+            "x": 39.08,
+            "y": -28.43,
+            "z": 0
+        },
+        {
+            "heading": 2.4186,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 2,
+            "type_text": "LC_START",
+            "x": 36.33,
+            "y": -25.98,
+            "z": 0
+        },
+        {
+            "heading": 2.4088,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 3,
+            "type_text": "LC_END",
+            "x": 30.65,
+            "y": -18.2,
+            "z": 0
+        },
+        {
+            "heading": 2.4146,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 0,
+            "type_text": "NORMAL",
+            "x": 27.2,
+            "y": -15.19,
+            "z": 0
+        },
+        {
+            "heading": -0.7239,
+            "is_reverse": true,
+            "speed": 5,
+            "type_enum": 0,
+            "type_text": "NORMAL",
+            "x": 26.42,
+            "y": -14.51,
+            "z": 0
+        },
+        {
+            "heading": -0.688,
+            "is_reverse": true,
+            "speed": 5,
+            "type_enum": 0,
+            "type_text": "NORMAL",
+            "x": 31.41,
+            "y": -18.84,
+            "z": 0
+        },
+        {
+            "heading": -0.6855,
+            "is_reverse": true,
+            "speed": 5,
+            "type_enum": 1,
+            "type_text": "DESTINATION",
+            "x": 36.82,
+            "y": -23.66,
+            "z": 0
+        }
+    ],
+    "route_id": "test_001",
+    "task_id": "task_01",
+    "vehicle_id": "v001"
+}

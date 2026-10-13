@@ -1,0 +1,12 @@
+/**:
+  ros__parameters:
+    window_seconds: 0.4        # [s] Sliding SG window length (~40 samples at 100 Hz).
+    min_window_samples: 5      # Don't publish until the buffer has at least this many samples.
+    polyorder: 3               # Polynomial degree for the SG fit (2 or 3 recommended).
+    min_dt: 0.005              # [s] Drop sample if dt below this (duplicates / out-of-order).
+    max_dt: 0.5                # [s] Reset filter on gaps larger than this.
+    alpha: 1.0                 # Optional post-LPF gain on the SG output. 1.0 disables the LPF.
+    linear_variance: 1.0       # Diagonal covariance for linear axes in the published Accel msg.
+    angular_variance: 0.05     # Diagonal covariance for angular axes.
+    input_topic: /localization/kinematic_state
+    output_topic: /planning/acceleration

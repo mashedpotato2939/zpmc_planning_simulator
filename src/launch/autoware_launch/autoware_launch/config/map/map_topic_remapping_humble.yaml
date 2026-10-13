@@ -1,0 +1,62 @@
+# Map Topic Remapping Configuration for "humble" suffix
+# This file defines all topic/service remappings needed to use the humble-suffixed map module
+#
+# Usage: Apply these remappings in launch files using <remap> tags or node parameters
+#
+# Example in launch XML:
+#   <remap from="/map/vector_map" to="/map/vector_map_humble"/>
+#   <remap from="/map/pointcloud_map" to="/map/pointcloud_map_humble"/>
+
+# Map Topics
+map_topics:
+  vector_map:
+    from: "/map/vector_map"
+    to: "/map/vector_map_humble"
+
+  pointcloud_map:
+    from: "/map/pointcloud_map"
+    to: "/map/pointcloud_map_humble"
+
+  pointcloud_map_metadata:
+    from: "/map/pointcloud_map_metadata"
+    to: "/map/pointcloud_map_metadata_humble"
+
+  map_projector_info:
+    from: "/map/map_projector_info"
+    to: "/map/map_projector_info_humble"
+
+  vector_map_marker:
+    from: "/map/vector_map_marker"
+    to: "/map/vector_map_marker_humble"
+
+  downsampled_pointcloud_map:
+    from: "/map/debug/downsampled_pointcloud_map"
+    to: "/map/debug/downsampled_pointcloud_map_humble"
+
+# Map Services
+map_services:
+  get_partial_pointcloud_map:
+    from: "/map/get_partial_pointcloud_map"
+    to: "/map/get_partial_pointcloud_map_humble"
+
+  get_selected_pointcloud_map:
+    from: "/map/get_selected_pointcloud_map"
+    to: "/map/get_selected_pointcloud_map_humble"
+
+  get_differential_pointcloud_map:
+    from: "/map/get_differential_pointcloud_map"
+    to: "/map/get_differential_pointcloud_map_humble"
+
+  map_height_fitter_service:
+    from: "/map/map_height_fitter/service"
+    to: "/map/map_height_fitter/service_humble"
+
+# Node Names (for reference - these are set in the launch files)
+map_node_names:
+  - lanelet2_map_loader_humble
+  - pointcloud_map_loader_humble
+  - lanelet2_map_visualization_humble
+  - map_height_fitter_humble
+  - map_projection_loader_humble
+  - vector_map_tf_generator_humble
+  - pcd_map_tf_generator_humble

@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="tile_directory" description="Path to ZPMC HD Map tile directory"/>
+  <arg name="tile_size" default="300.0" description="Tile size in meters"/>
+  <arg name="frame_id" default="map" description="Coordinate frame"/>
+  <arg name="use_sim_time" default="true" description="Use simulation time supplied on /clock"/>
+
+  <node pkg="zpmc_map_loader" exec="zpmc_map_loader" name="zpmc_map_loader" output="screen">
+    <param name="tile_directory" value="$(var tile_directory)"/>
+    <param name="tile_size" value="$(var tile_size)"/>
+    <param name="frame_id" value="$(var frame_id)"/>
+    <param name="use_sim_time" value="$(var use_sim_time)"/>
+  </node>
+</launch>

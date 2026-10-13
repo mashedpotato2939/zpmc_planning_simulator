@@ -1,0 +1,7 @@
+# vehicle_agent default config. Adapter list is selected at launch.
+/**:
+  ros__parameters:
+    adapters: ["scenario_loopback"]
+    scenario_path: ""
+    publish_ns: "/vehicle_agent"
+    event_bus_capacity: 1024

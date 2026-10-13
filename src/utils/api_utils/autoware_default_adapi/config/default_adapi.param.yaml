@@ -1,0 +1,21 @@
+/adapi/node/autoware_state:
+  ros__parameters:
+    update_rate: 10.0
+
+/adapi/node/motion:
+  ros__parameters:
+    require_accept_start: false
+    stop_check_duration: 1.0
+
+/adapi/node/vehicle_info:
+  ros__parameters:
+    wheel_radius: 0.3
+    wheel_width: 0.2
+    wheel_base: 2.7
+    wheel_tread: 1.6
+    front_overhang: 0.9
+    rear_overhang: 0.9
+    left_overhang: 0.1
+    right_overhang: 0.1
+    vehicle_height: 1.5
+    max_steer_angle: 0.7854

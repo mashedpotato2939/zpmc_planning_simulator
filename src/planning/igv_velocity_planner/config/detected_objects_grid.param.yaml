@@ -1,0 +1,41 @@
+/**:
+  ros__parameters:
+    # Master toggle. When false the node ignores detections and publishes
+    # nothing (useful for A/B against the predicted-object path).
+    enable: true
+
+    # Frame the grid is published in. Detections in any other frame are
+    # TF-transformed to this frame before rasterization. Must match the frame
+    # the velocity shaper's path is in (map).
+    target_frame: "map"
+
+    # Cell size. Smaller = sharper footprints but more cells. 0.2 m comfortably
+    # resolves the scale-IGV-sized obstacles this path targets.
+    resolution: 0.2
+
+    # Side length of the square ego-centered grid. Covers the shaper's
+    # occupancy_grid_check.max_distance (40 m) ahead and behind.
+    grid_length_m: 80.0
+
+    # Binary temporal hold. Each publish cycle rasterizes the union of
+    # detections seen within this window, so a 1-2 frame detection dropout does
+    # not free the cells. This is the identity-free replacement for the per-UUID
+    # stop hysteresis that chattered on detection re-ID / dropout.
+    hold_time_s: 0.5
+
+    # Grid republish rate. 10 Hz matches the detection cadence.
+    publish_rate_hz: 10.0
+
+    # Value written into occupied cells. Must exceed
+    # fms_velocity_shaper.occupancy_grid_check.occupancy_threshold (60).
+    occupancy_value: 100
+
+    # Extra lateral inflation added on top of the ego half-width (loaded from
+    # vehicle_info). Footprints are inflated by ego_half_width + lateral_margin
+    # so the shaper's centerline-only sampling still catches laterally offset
+    # obstacles.
+    lateral_margin: 0.1
+
+    # Drop detections with existence_probability below this before rasterizing
+    # (0.0 = keep all). Raise to filter low-confidence clutter.
+    min_existence_probability: 0.0

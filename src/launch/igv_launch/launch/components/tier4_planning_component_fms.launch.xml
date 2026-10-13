@@ -1,0 +1,233 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    Planning Component with FMS Trajectory Bridge Integration
+
+    When fms_enabled=true (default in complete_autoware_system_fms.launch.xml):
+      igv_path_converter publishes a Path with FMS-chosen velocities to
+        /planning/igv_path_planner/path
+      igv_velocity_shaper subsumes obstacle_velocity_limiter +
+        dynamic_obstacle_stop + ACC and publishes
+        /planning/igv_velocity_planner/trajectory
+      igv_kinematic_smoother → planning_validator handle the rest.
+
+    This launch is FMS-only. The behavior_planning, scenario_selector,
+    velocity_smoother, parking, planning_evaluator, and entire motion_planning
+    chain are intentionally not launched here.
+
+    See docs/vehicle_agent/velocity_planner_simplification_plan.md for the
+    rationale and the 3-stage end state.
+  -->
+
+  <!-- Legacy compatibility args kept for callers that still pass the old
+       tier4_planning_launch arguments. They are no-ops in this FMS-only launch. -->
+  <arg name="vehicle_model" default="igv_vehicle"/>
+  <arg name="pointcloud_container_name" default="pointcloud_container"/>
+  <arg name="module_preset" default="default"/>
+  <arg name="enable_all_modules_auto_mode" default="false"/>
+  <arg name="is_simulation" default="false"/>
+  <arg name="use_sim_time" default="true"/>
+  <arg name="map_topic_name" default="/map/vector_map"/>
+
+  <!-- FMS Integration Arguments -->
+  <arg name="fms_enabled" default="true" description="Enable FMS trajectory input"/>
+  <arg name="fms_protocol_type" default="default" description="Protocol plugin: 'default' (ICD) or 'legacy' (FMSPath)"/>
+  <arg name="fms_topic" default="/fms/reference_path" description="FMS path input topic (legacy)"/>
+  <arg name="fms_json_topic" default="/fms/reference_path_json" description="FMS JSON input topic (legacy)"/>
+  <arg name="use_json_input" default="false" description="Enable JSON string input (legacy)"/>
+  <arg name="route_window_topic" default="/fms/route_window" description="FMS route window topic (default protocol)"/>
+  <arg name="stop_point_topic" default="/fms/stop_point" description="FMS stop point topic (default protocol)"/>
+  <arg name="lane_width" default="3.5" description="Lane width for drivable area (meters)"/>
+  <arg name="generate_drivable_area" default="true" description="Generate synthetic drivable bounds"/>
+  <arg name="enable_crab_avoidance" default="false" description="Enable crab-walking obstacle avoidance"/>
+
+  <set_parameter name="use_sim_time" value="$(var use_sim_time)"/>
+
+  <!-- Free-space occupancy: the velocity shaper consumes
+       /perception/occupancy_grid_map/map directly via a distance-map + corridor
+       check (hard stop + graded slow-down). Benign no-op until that topic is
+       published. -->
+  <arg name="use_occupancy_grid" default="true"
+       description="Enable the velocity shaper's free-space occupancy stop/slow-down pathway"/>
+
+  <!-- Off-by-default fallback occupancy source: when true, the shaper's occupancy
+       pathway is fed by the local detected_objects_to_grid rasterizer instead of
+       the probabilistic /perception/occupancy_grid_map/map (useful when the OGM
+       under-marks tracked obstacles on the path). -->
+  <arg name="enable_detection_grid" default="false"
+       description="Feed the occupancy pathway from a local DetectedObjects rasterizer (fallback)"/>
+  <let name="occupancy_grid_topic" value="/planning/igv_velocity_planner/detections_occupancy_grid" if="$(var enable_detection_grid)"/>
+  <let name="occupancy_grid_topic" value="/perception/occupancy_grid_map/map" unless="$(var enable_detection_grid)"/>
+
+  <!-- Deprecated no-op retained for launch_with_fms_real_vehicle.sh compatibility. -->
+  <arg name="skip_motion_velocity_planner" default="true"
+       description="Deprecated — this component is FMS-only and never launches motion_velocity_planner."/>
+
+  <!-- Planning-side acceleration estimator: replaces /localization/acceleration for the planning chain. -->
+  <arg name="launch_planning_acceleration_estimator" default="true"
+       description="Run planning_ego_acceleration_estimator and route planning consumers to /planning/acceleration"/>
+  <arg name="planning_acceleration_topic" default="/planning/acceleration"
+       description="Acceleration topic consumed by the planning chain"/>
+
+  <!-- Direct replacements for the small subset that used to be pulled through
+       tier4_planning_launch. -->
+  <arg name="common_param_path"
+       default="$(find-pkg-share igv_launch)/config/planning/scenario_planning/common/common.param.yaml"/>
+  <arg name="velocity_smoother_param_path"
+       default="$(find-pkg-share igv_launch)/config/planning/scenario_planning/common/autoware_velocity_smoother/velocity_smoother.param.yaml"/>
+  <arg name="planning_validator_param_path"
+       default="$(find-pkg-share igv_launch)/config/planning/scenario_planning/common/planning_validator/planning_validator.param.yaml"/>
+
+  <!-- ========================================== -->
+  <!-- FMS Path Converter (FMS-only) -->
+  <!-- ========================================== -->
+  <group if="$(var fms_enabled)">
+    <node pkg="igv_path_planner" exec="igv_path_converter" name="igv_path_converter" output="screen">
+      <param from="$(find-pkg-share igv_path_planner)/config/igv_path_converter.param.yaml"/>
+      <param from="$(find-pkg-share $(var vehicle_model)_description)/config/vehicle_info.param.yaml"/>
+
+      <param name="fms_protocol.type" value="$(var fms_protocol_type)"/>
+      <param name="use_json_input" value="$(var use_json_input)"/>
+      <param name="lane_width" value="$(var lane_width)"/>
+      <param name="generate_drivable_area" value="$(var generate_drivable_area)"/>
+      <param name="crab_avoidance.enable" value="$(var enable_crab_avoidance)"/>
+      <param name="publish_rate" value="20.0"/>
+
+      <remap from="~/input/fms_path" to="$(var fms_topic)"/>
+      <remap from="~/input/fms_json" to="$(var fms_json_topic)"/>
+      <remap from="~/input/route_window" to="$(var route_window_topic)"/>
+      <remap from="~/input/stop_point" to="$(var stop_point_topic)"/>
+      <remap from="~/input/odometry" to="/localization/kinematic_state"/>
+      <remap from="~/input/objects" to="/perception/object_recognition/objects"/>
+      <remap from="~/input/vector_map" to="/map/vector_map_humble"/>
+      <remap from="~/output/path" to="/planning/igv_path_planner/path"/>
+      <remap from="~/output/route" to="/planning/mission_planning/route"/>
+      <remap from="~/output/status" to="/fms_bridge/status"/>
+      <remap from="~/output/adapter_status" to="/fms_bridge/adapter_status"/>
+      <remap from="~/output/vehicle_status" to="/fms/vehicle_status"/>
+      <remap from="~/output/trajectory_report" to="/fms/trajectory_report"/>
+      <remap from="~/output/job_event" to="/fms/job_event"/>
+      <remap from="~/output/detour_request" to="/fms/detour_request"/>
+    </node>
+  </group>
+
+  <!-- ========================================== -->
+  <!-- Detection-grid fallback (OFF by default): rasterize close-range
+       DetectedObjects into an OccupancyGrid and feed it to the shaper's occupancy
+       pathway in place of /perception/occupancy_grid_map/map. -->
+  <!-- ========================================== -->
+  <group if="$(var fms_enabled)">
+    <group if="$(var enable_detection_grid)">
+      <node pkg="igv_velocity_planner" exec="detected_objects_to_grid"
+            name="detected_objects_to_grid" output="screen">
+        <param from="$(find-pkg-share igv_velocity_planner)/config/detected_objects_grid.param.yaml"/>
+        <param from="$(find-pkg-share $(var vehicle_model)_description)/config/vehicle_info.param.yaml"/>
+
+        <remap from="~/input/detected_objects" to="/perception/object_recognition/detection/objects"/>
+        <remap from="~/input/odometry" to="/localization/kinematic_state"/>
+        <remap from="~/output/occupancy_grid" to="/planning/igv_velocity_planner/detections_occupancy_grid"/>
+      </node>
+    </group>
+  </group>
+
+  <!-- ========================================== -->
+  <!-- FMS Velocity Shaper (Phase 3 — single owner of obstacle-driven v(s)) -->
+  <!-- ========================================== -->
+  <group if="$(var fms_enabled)">
+    <node pkg="igv_velocity_planner" exec="igv_velocity_shaper"
+          name="igv_velocity_shaper" output="screen">
+      <param from="$(find-pkg-share igv_velocity_planner)/config/igv_velocity_shaper.param.yaml"/>
+      <param from="$(find-pkg-share $(var vehicle_model)_description)/config/vehicle_info.param.yaml"/>
+
+      <!-- Launch flag drives the occupancy pathway, overriding the yaml default
+           (a later <param> wins). -->
+      <param name="perception_inputs.use_occupancy_grid" value="$(var use_occupancy_grid)"/>
+
+      <remap from="~/input/path"
+             to="/planning/igv_path_planner/path"/>
+      <!-- Raw predicted objects (tracked/moving). -->
+      <remap from="~/input/objects" to="/perception/object_recognition/objects"/>
+      <remap from="~/input/odometry" to="/localization/kinematic_state"/>
+      <remap from="~/input/occupancy_grid" to="$(var occupancy_grid_topic)"/>
+
+      <remap from="~/output/trajectory"
+             to="/planning/igv_velocity_planner/trajectory"/>
+      <remap from="~/output/velocity_factors"
+             to="/planning/velocity_factors/igv_velocity_planner"/>
+      <remap from="~/output/stop_reasons"
+             to="/planning/scenario_planning/status/stop_reasons"/>
+      <remap from="~/output/stop_markers"
+             to="/planning/igv_velocity_planner/stop_markers"/>
+      <remap from="~/debug/occupancy_corridor"
+             to="/planning/igv_velocity_planner/debug/occupancy_corridor"/>
+      <remap from="~/debug/occupancy_distance_map"
+             to="/planning/igv_velocity_planner/debug/occupancy_distance_map"/>
+    </node>
+  </group>
+
+  <!-- ========================================== -->
+  <!-- FMS Kinematic Smoother (slim port of autoware_velocity_smoother) -->
+  <!-- Owns kinematic feasibility (jerk/accel limits, engage-from-rest,
+       lateral-accel + steering-rate filters, stop-point enforcement, and
+       the FMS-specific OBLIQUE/Q_TURN body-yaw cache). Drops OSQP/QP. -->
+  <!-- ========================================== -->
+  <group if="$(var fms_enabled)">
+    <node pkg="igv_velocity_planner" exec="igv_kinematic_smoother"
+          name="igv_kinematic_smoother" output="screen">
+      <param from="$(find-pkg-share igv_velocity_planner)/config/igv_kinematic_smoother.param.yaml"/>
+      <param from="$(find-pkg-share $(var vehicle_model)_description)/config/vehicle_info.param.yaml"/>
+
+      <remap from="~/input/trajectory"
+             to="/planning/igv_velocity_planner/trajectory"/>
+      <remap from="~/input/acceleration" to="$(var planning_acceleration_topic)"/>
+      <remap from="~/input/external_velocity_limit_mps"
+             to="/planning/scenario_planning/max_velocity"/>
+      <remap from="~/input/maneuver_type" to="/fms/maneuver_type"/>
+      <remap from="~/input/behavior_path"
+             to="/planning/igv_path_planner/path"/>
+
+      <remap from="~/output/trajectory"
+             to="/planning/scenario_planning/velocity_smoother/trajectory"/>
+    </node>
+  </group>
+
+  <!-- ========================================== -->
+  <!-- Planning-side acceleration estimator -->
+  <!-- ========================================== -->
+  <group if="$(var launch_planning_acceleration_estimator)">
+    <include file="$(find-pkg-share planning_ego_acceleration_estimator)/launch/ego_acceleration_estimator.launch.xml">
+      <arg name="input_topic" value="/localization/kinematic_state"/>
+      <arg name="output_topic" value="$(var planning_acceleration_topic)"/>
+    </include>
+  </group>
+
+  <!-- ========================================== -->
+  <!-- FMS planning tail: external velocity limits + final trajectory validator. -->
+  <!-- ========================================== -->
+
+  <group scoped="false">
+    <include file="$(find-pkg-share global_parameter_loader)/launch/global_params.launch.py">
+      <arg name="use_sim_time" value="$(var use_sim_time)"/>
+      <arg name="vehicle_model" value="$(var vehicle_model)"/>
+    </include>
+  </group>
+
+  <group if="$(var fms_enabled)">
+    <push-ros-namespace namespace="planning"/>
+
+    <group>
+      <push-ros-namespace namespace="scenario_planning"/>
+      <include file="$(find-pkg-share autoware_external_velocity_limit_selector)/launch/external_velocity_limit_selector.launch.xml">
+        <arg name="common_param_path" value="$(var common_param_path)"/>
+        <arg name="param_path" value="$(var velocity_smoother_param_path)"/>
+      </include>
+    </group>
+
+    <include file="$(find-pkg-share autoware_planning_validator)/launch/planning_validator.launch.xml">
+      <arg name="input_trajectory" value="/planning/scenario_planning/velocity_smoother/trajectory"/>
+      <arg name="output_trajectory" value="/planning/scenario_planning/trajectory"/>
+      <arg name="planning_validator_param_path" value="$(var planning_validator_param_path)"/>
+    </include>
+  </group>
+
+</launch>

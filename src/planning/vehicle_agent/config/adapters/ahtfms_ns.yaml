@@ -1,0 +1,28 @@
+# AHTFMS-NS adapter configuration.
+#
+# This adapter speaks the AHTFMS-NS ICD v1.1.1 over a single TCP connection
+# (§4.1: NS initiates, CM is the server). Defaults here assume a co-located
+# CM (Communication Module) on the same host as the vehicle node.
+/**:
+  ros__parameters:
+    ahtfms_ns:
+      # CM connection — production wires this to the per-vehicle CM gateway.
+      broker_host: "127.0.0.1"
+      broker_port: 8801
+
+      # CM Header identifiers (§4.3).
+      #   sender_sys → this vehicle's name (CHAR[9], NUL-padded)
+      #   fms_sys    → target_sys when we publish status/responses upstream
+      # Outbound frames carry (sender_sys=vehicle_id, target_sys=fms_sys).
+      # Inbound frames whose target_sys != vehicle_id are silently dropped.
+      vehicle_id: "IGV2001"
+      fms_sys: "AHTFMS"
+
+      # Anti-DoS bound on a single payload (§4.4 msg_len_q is uint32 but a
+      # 4 GiB body would crash us; 1 MiB is well above any real ICD message).
+      max_payload_bytes: 1048576
+
+      # Reconnect strategy if the TCP link drops. Exponential backoff from
+      # min to max; the I/O thread also wakes the moment stop() is requested.
+      reconnect_min_ms: 500
+      reconnect_max_ms: 10000

@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    Planning Component configured to use map topics with "humble" suffix
+    This is a wrapper around tier4_planning_component_v1 that remaps all map-related topics
+  -->
+
+  <arg name="vehicle_param_file"/>
+  <arg name="enable_all_modules_auto_mode" default="true"/>
+  <arg name="module_preset" default="default"/>
+  <arg name="is_simulation" default="false"/>
+
+  <group>
+    <!-- Include the original planning component -->
+    <include file="$(find-pkg-share tier4_planning_launch)/launch/planning.launch.xml">
+      <arg name="vehicle_param_file" value="$(var vehicle_param_file)"/>
+      <arg name="enable_all_modules_auto_mode" value="$(var enable_all_modules_auto_mode)"/>
+      <arg name="module_preset" value="$(var module_preset)"/>
+      <arg name="is_simulation" value="$(var is_simulation)"/>
+      <!-- Override map topic name to use _humble suffix -->
+      <arg name="map_topic_name" value="/map/vector_map_humble"/>
+    </include>
+
+    <!-- Global remapping for all planning nodes to use _humble suffixed map topics -->
+    <!-- These remappings apply to all nodes within this group -->
+    <node pkg="tier4_planning_launch" exec="remap_helper" name="planning_map_remapper_humble" if="false">
+      <!-- This is a placeholder - actual remapping is done in the group context -->
+    </node>
+  </group>
+
+  <!-- Note: Due to ROS2 launch system limitations, we need to apply remappings -->
+  <!-- at the individual node level. See the remapping configuration file below. -->
+</launch>

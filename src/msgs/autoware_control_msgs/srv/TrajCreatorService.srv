@@ -1,0 +1,5 @@
+uint32 trajectory_type
+uint8 is_reverse
+---
+int32 result
+autoware_planning_msgs/Trajectory traj

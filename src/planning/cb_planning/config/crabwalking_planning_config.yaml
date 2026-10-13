@@ -1,0 +1,89 @@
+obstacle:
+  obs_num: 2
+
+  obs1:
+    id: 0
+    frame: "map"
+    length: 2.0
+    width: 1.2
+    global_pos_x: 28.0
+    global_pos_y: 2.5
+    global_heading_angle: 0.0
+  
+  obs2:
+    id: 1
+    frame: "map"
+    length: 3.0
+    width: 0.8
+    global_pos_x: 62.0
+    global_pos_y: 2.3
+    global_heading_angle: -20.0
+  
+  # obs3:
+  #   id: 2
+  #   frame: "map"
+  #   length: 12.0
+  #   width: 3.0
+  #   global_pos_x: 50.0
+  #   global_pos_y: 1.0
+  #   global_heading_angle: 0.0
+  
+  # obs4:
+  #   id: 3
+  #   frame: "map"
+  #   length: 6.0
+  #   width: 3.6
+  #   global_pos_x: 70.0
+  #   global_pos_y: 2.0
+  #   global_heading_angle: 0.0
+  
+  # obs5:
+  #   id: 4
+  #   frame: "map"
+  #   length: 6.0
+  #   width: 3.0
+  #   global_pos_x: 20.0
+  #   global_pos_y: 8.5
+  #   global_heading_angle: -30.0
+
+moving_obstacle:
+  obs1:
+    id: 0
+    frame: "map"
+    length: 3.0
+    width: 1.0
+    initial_pos_x: 20.0
+    initial_pos_y: 0.65
+    initial_heading_angle: 0.0
+    moving_velocity: 2.0
+
+lane:
+  frame: "map"
+  lane_begin_x: -10.0
+  lane_end_x: 150.0
+  lane_begin_y: 0.0
+  lane_end_y: 2.6
+  lane_width: 1.3
+  lane_num: 2
+  lane_change_start_x: 10.0
+  lane_change_end_x: 25.0
+
+vehicle:
+  frame: "baselink"
+  ego_length: 3.0
+  ego_width: 1.0
+  steer_angle_max: 25.0
+  steer_angular_vel_max: 20.0   #deg/s
+
+planning:
+  dest_x: 80.0
+  Min_Collision_free_distance: 12.0
+  lane_sampling_begin_y: 0.5
+  lane_sampling_end_y: 2.1
+  lane_y_sampling_interval: 0.1
+  lane_x_sampling_interval: 1.0
+  local_map_forward_x: 30.0
+  local_map_backward_x: 5.0
+  vx_ref: 2.0
+  ax_drive: 1.5
+  ax_brake: 1.5

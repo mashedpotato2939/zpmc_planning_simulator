@@ -1,0 +1,259 @@
+{
+    "job_id": "job_01",
+    "orientation": 1,
+    "points": [
+        {
+            "heading": 0.0542,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 5,
+            "type_text": "LOCAL_PLAN_START",
+            "x": 299.06,
+            "y": 116.07,
+            "z": 0
+        },
+        {
+            "heading": -1.5692,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 6,
+            "type_text": "LOCAL_PLAN_END",
+            "x": 329.94,
+            "y": 84.47,
+            "z": 0
+        },
+        {
+            "heading": -1.5192,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 5,
+            "type_text": "LOCAL_PLAN_START",
+            "x": 330.05,
+            "y": 70.01,
+            "z": 0
+        },
+        {
+            "heading": -3.14,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 6,
+            "type_text": "LOCAL_PLAN_END",
+            "x": 311.38,
+            "y": 53.98,
+            "z": 0
+        },
+        {
+            "heading": 3.1247,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 0,
+            "type_text": "NORMAL",
+            "x": 227.45,
+            "y": 54.01,
+            "z": 0
+        },
+        {
+            "heading": -3.14,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 0,
+            "type_text": "NORMAL",
+            "x": 107.62,
+            "y": 54.06,
+            "z": 0
+        },
+        {
+            "heading": -3.14,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 5,
+            "type_text": "LOCAL_PLAN_START",
+            "x": 75.36,
+            "y": 53.83,
+            "z": 0
+        },
+        {
+            "heading": -1.5692,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 6,
+            "type_text": "LOCAL_PLAN_END",
+            "x": 58.17,
+            "y": 37.04,
+            "z": 0
+        },
+        {
+            "heading": -1.6127,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 5,
+            "type_text": "LOCAL_PLAN_START",
+            "x": 57.96,
+            "y": 26.58,
+            "z": 0
+        },
+        {
+            "heading": -0.0419,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 6,
+            "type_text": "LOCAL_PLAN_END",
+            "x": 78.54,
+            "y": 5.98,
+            "z": 0
+        },
+        {
+            "heading": 0.0016,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 0,
+            "type_text": "NORMAL",
+            "x": 106.76,
+            "y": 5.85,
+            "z": 0
+        },
+        {
+            "heading": 0.0016,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 2,
+            "type_text": "LC_START",
+            "x": 113.54,
+            "y": 5.97,
+            "z": 0
+        },
+        {
+            "heading": 0.0016,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 3,
+            "type_text": "LC_END",
+            "x": 150.63,
+            "y": 9.83,
+            "z": 0
+        },
+        {
+            "heading": -0.0184,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 0,
+            "type_text": "NORMAL",
+            "x": 219.45,
+            "y": 9.9,
+            "z": 0
+        },
+        {
+            "heading": 0.0129,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 0,
+            "type_text": "NORMAL",
+            "x": 326.79,
+            "y": 9.98,
+            "z": 0
+        },
+        {
+            "heading": 0.026,
+            "is_reverse": false,
+            "speed": 5,
+            "type_enum": 0,
+            "type_text": "NORMAL",
+            "x": 392.51,
+            "y": 9.92,
+            "z": 0
+        },
+        {
+            "heading": -3.1156,
+            "is_reverse": true,
+            "speed": 5,
+            "type_enum": 0,
+            "type_text": "NORMAL",
+            "x": 392.51,
+            "y": 9.92,
+            "z": 0
+        },
+        {
+            "heading": 3.12,
+            "is_reverse": true,
+            "speed": 5,
+            "type_enum": 5,
+            "type_text": "LOCAL_PLAN_START",
+            "x": 378.87,
+            "y": 9.95,
+            "z": 0
+        },
+        {
+            "heading": 1.5696,
+            "is_reverse": true,
+            "speed": 5,
+            "type_enum": 6,
+            "type_text": "LOCAL_PLAN_END",
+            "x": 360.19,
+            "y": 32.62,
+            "z": 0
+        },
+        {
+            "heading": 1.5903,
+            "is_reverse": true,
+            "speed": 5,
+            "type_enum": 0,
+            "type_text": "NORMAL",
+            "x": 360.19,
+            "y": 68.39,
+            "z": 0
+        },
+        {
+            "heading": 1.5762,
+            "is_reverse": true,
+            "speed": 5,
+            "type_enum": 2,
+            "type_text": "LC_START",
+            "x": 359.88,
+            "y": 72.84,
+            "z": 0
+        },
+        {
+            "heading": 1.5804,
+            "is_reverse": true,
+            "speed": 5,
+            "type_enum": 3,
+            "type_text": "LC_END",
+            "x": 365.94,
+            "y": 88.91,
+            "z": 0
+        },
+        {
+            "heading": 1.5714,
+            "is_reverse": true,
+            "speed": 5,
+            "type_enum": 5,
+            "type_text": "LOCAL_PLAN_START",
+            "x": 366.32,
+            "y": 97.61,
+            "z": 0
+        },
+        {
+            "heading": -3.1262,
+            "is_reverse": true,
+            "speed": 5,
+            "type_enum": 6,
+            "type_text": "LOCAL_PLAN_END",
+            "x": 338.62,
+            "y": 115.92,
+            "z": 0
+        },
+        {
+            "heading": 3.12,
+            "is_reverse": true,
+            "speed": 5,
+            "type_enum": 1,
+            "type_text": "DESTINATION",
+            "x": 280.66,
+            "y": 115.87,
+            "z": 0
+        }
+    ],
+    "route_id": "test_009",
+    "task_id": "task_01",
+    "vehicle_id": "v001"
+}

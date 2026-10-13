@@ -1,0 +1,6 @@
+{
+  "header": {"message_time": 1732468803000},
+  "command_id": "C-9999",
+  "command_type": 1,
+  "suspend_command": {"stopping_type": 2}
+}

@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>igv_launch</name>
+  <version>0.1.0</version>
+  <description>
+    Standalone launch package for the ZPMC IGV FMS real-vehicle terminal.
+    Owns igv_planning.launch.xml (the entry point behind
+    launch_with_fms_real_vehicle.sh) and its FMS planning component, plus a
+    self-contained copy of just the planning / FMS-diagnostic config and rviz
+    assets that chain consumes. Split out of autoware_launch so the IGV-
+    specific real-vehicle wiring lives on its own. The companion test-components
+    terminal stays in autoware_launch.
+  </description>
+
+  <maintainer email="HaleyGarciadk@outlook.es">zhuting</maintainer>
+  <license>Apache License 2.0</license>
+
+  <buildtool_depend>ament_cmake_auto</buildtool_depend>
+
+  <!-- Packages whose launch files / executables are pulled in via find-pkg-share
+       by igv_planning.launch.xml + tier4_planning_component_fms.launch.xml -->
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>global_parameter_loader</exec_depend>
+  <exec_depend>diagnostic_graph_aggregator</exec_depend>
+  <exec_depend>tier4_vehicle_launch</exec_depend>
+  <exec_depend>autoware_external_velocity_limit_selector</exec_depend>
+  <exec_depend>autoware_planning_validator</exec_depend>
+  <exec_depend>tier4_autoware_api_launch</exec_depend>
+  <exec_depend>planning_ego_acceleration_estimator</exec_depend>
+  <exec_depend>perception_relay</exec_depend>
+  <exec_depend>map_loader</exec_depend>
+  <exec_depend>xiamen_tiles_v1</exec_depend>
+  <exec_depend>zpmc_map_loader</exec_depend>
+  <exec_depend>zpmc_map_msgs</exec_depend>
+  <exec_depend>igv_vehicle_description</exec_depend>
+  <exec_depend>igv_vehicle_launch</exec_depend>
+  <exec_depend>fms_sensor_kit_description</exec_depend>
+  <exec_depend>fms_sensor_kit_launch</exec_depend>
+  <exec_depend>vehicle_agent</exec_depend>
+  <exec_depend>fms_bridge_rviz_plugin</exec_depend>
+  <exec_depend>igv_path_planner</exec_depend>
+  <exec_depend>igv_velocity_planner</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>autoware_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

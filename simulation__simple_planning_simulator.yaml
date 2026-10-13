@@ -1,0 +1,63 @@
+/simulation/simple_planning_simulator:
+  ros__parameters:
+    acc_time_constant: 0.1
+    acc_time_delay: 0.1
+    add_measurement_noise: false
+    debug_acc_scaling_factor: 1.0
+    debug_steer_scaling_factor: 1.0
+    enable_4ws_simulation: true
+    enable_pub_steer: true
+    enable_road_slope_simulation: false
+    front_overhang: 4.5
+    initial_engage_state: true
+    initialize_source: INITIAL_POSE_TOPIC
+    left_overhang: 0.2375
+    max_steer_angle: 0.7
+    model_class_names:
+    - ''
+    model_module_paths:
+    - ''
+    model_param_paths:
+    - ''
+    origin_frame_id: map
+    pos_noise_stddev: 0.01
+    qos_overrides:
+      /clock:
+        subscription:
+          depth: 1
+          durability: volatile
+          history: keep_last
+          reliability: best_effort
+      /parameter_events:
+        publisher:
+          depth: 1000
+          durability: volatile
+          history: keep_last
+          reliability: reliable
+    rear_overhang: 4.5
+    rear_wheelbase: 3.0
+    right_overhang: 0.2375
+    rpy_noise_stddev: 0.0001
+    simulated_frame_id: base_link
+    steer_bias: 0.0
+    steer_dead_band: 0.0
+    steer_lim: 1.0
+    steer_noise_stddev: 0.0001
+    steer_rate_lim: 5.0
+    steer_time_constant: 0.27
+    steer_time_delay: 0.24
+    timer_sampling_time_ms: 25
+    use_sim_time: true
+    vehicle_height: 2.55
+    vehicle_model_type: DELAY_STEER_VEL_TWO_AXIS
+    vel_lim: 50.0
+    vel_noise_stddev: 0.01
+    vel_rate_lim: 7.0
+    vel_time_constant: 0.5
+    vel_time_delay: 0.25
+    wheel_base: 6.0
+    wheel_radius: 0.67
+    wheel_tread: 2.505
+    wheel_width: 0.42
+    x_stddev: 0.0001
+    y_stddev: 0.0001

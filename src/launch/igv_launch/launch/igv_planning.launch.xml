@@ -1,0 +1,255 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    IGV Planning terminal launch — backs launch_with_fms_real_vehicle.sh.
+
+    Components owned here:
+      - System diagnostics (FMS-flavoured diagnostic_graph_aggregator)
+      - global_parameter_loader
+      - ZPMC tiled HD map loader
+      - Vehicle component (URDF + robot_state_publisher + vehicle_interface)
+      - Planning chain: FMS path converter → fms_velocity_shaper →
+        igv_kinematic_smoother → planning_validator (see
+        tier4_planning_component_fms.launch.xml)
+      - vehicle_agent (+ va_route_bridge) — cloud FMS edge gateway
+      - perception_relay (Galactic → Humble msg conversion)
+      - autoware API
+      - RViz
+
+    Components owned by the companion test-components terminal
+    (igv_test_components.launch.xml), NOT included here:
+      - pointcloud_container
+      - Simulator + dummy perception + dummy vehicle
+      - simple_object_predictor
+      - Control: gate / OMT / AEB / shift_decider / validator / motion_control
+        (in production the external control team supplies the full chain
+        downstream of /planning/scenario_planning/trajectory)
+  -->
+
+  <!-- ===================== ARGUMENTS ===================== -->
+
+  <!-- FMS Integration Arguments -->
+  <arg name="fms_enabled" default="true" description="Enable FMS trajectory input"/>
+  <arg name="fms_protocol_type" default="default" description="Protocol plugin: 'default' (ICD-flavoured FMSRouteWindow), 'legacy' (FMSPath); also drives vehicle_agent adapter selection — see use_vehicle_agent / vehicle_agent_adapters."/>
+  <!-- vehicle_agent (v1.2 edge gateway) -->
+  <arg name="use_vehicle_agent" default="true" description="Run vehicle_agent in this launch (the edge gateway between cloud FMS and the planning stack)"/>
+  <arg name="vehicle_agent_adapters" default="" description="Comma-separated VA adapter list. Empty → derived from fms_protocol_type (default→ahtfms_ns, legacy→ahtfms_ns)."/>
+  <arg name="vehicle_agent_scenario_path" default="" description="Scenario YAML for scenario_loopback adapter; ignored otherwise"/>
+  <arg name="vehicle_agent_publish_ns" default="/vehicle_agent" description="Namespace for VA IR publishers"/>
+  <arg name="use_va_route_bridge" default="true" description="Run va_route_bridge that translates IR topics into the FMSRouteWindow/FMSStopPoint shapes fms_path_converter consumes"/>
+  <arg name="fms_topic" default="/fms/reference_path" description="FMS path input topic (legacy)"/>
+  <arg name="fms_json_topic" default="/fms/reference_path_json" description="FMS JSON input topic (legacy)"/>
+  <arg name="use_json_input" default="false" description="Enable JSON string input (legacy)"/>
+  <arg name="route_window_topic" default="/fms/route_window" description="FMS route window topic (default protocol)"/>
+  <arg name="stop_point_topic" default="/fms/stop_point" description="FMS stop point topic (default protocol)"/>
+  <arg name="skip_motion_velocity_planner" default="true" description="Deprecated no-op; the FMS component no longer launches motion_velocity_planner"/>
+  <arg name="lane_width" default="3.5" description="Lane width for synthetic drivable area (meters)"/>
+  <arg name="generate_drivable_area" default="true" description="Generate synthetic drivable bounds"/>
+  <arg name="use_occupancy_grid" default="true" description="Enable the velocity shaper's free-space occupancy stop/slow-down pathway"/>
+  <arg name="enable_detection_grid" default="false" description="Fallback: feed the occupancy pathway from a local DetectedObjects rasterizer"/>
+  <!-- enable_trajectory_relay was removed when fms_velocity_shaper became the
+       single owner of obstacle-driven velocity in FMS mode (Phase 3 of
+       docs/vehicle_agent/velocity_planner_simplification_plan.md). The FMS
+       tail publishes directly into the planning_validator input, so no relay
+       is needed. -->
+  <arg name="enable_trajectory_relay" default="false"
+       description="Deprecated — kept for backward compat. Has no effect in FMS mode."/>
+  <arg name="enable_perception_relay" default="true" description="Enable perception message relay (Galactic → Humble conversion). Default on for the real-vehicle terminal."/>
+  <arg name="perception_relay_detected_objects_topic" default="/perception/centerpoint/objects"
+       description="Galactic DetectedObjects input used by perception_relay. The current simulation launches CenterPoint without object_merger."/>
+
+
+  <!-- Map and vehicle parameters -->
+  <arg name="zpmc_tile_directory" default="$(find-pkg-share xiamen_tiles_v1)" description="ZPMC tiled HD map directory"/>
+  <arg name="map_path" default="$(find-pkg-share xiamen_tiles_v1)" description="Legacy Lanelet2 and pointcloud map directory"/>
+  <arg name="vehicle_model" default="igv_vehicle" description="vehicle model name"/>
+  <arg name="sensor_model" default="fms_sensor_kit" description="sensor model name"/>
+  <arg name="vehicle_id" default="v001" description="vehicle id"/>
+
+  <!-- Map files -->
+  <arg name="lanelet2_map_file" default="nanhui_double_deck_fat_v2.osm" description="Lanelet2 map file"/>
+  <arg name="pointcloud_map_file" default="global.pcd" description="Pointcloud map file"/>
+
+  <!-- Planning settings -->
+  <arg name="module_preset" default="default"/>
+  <arg name="enable_all_modules_auto_mode" default="true"/>
+  <arg name="is_simulation" default="false" description="Real-vehicle terminal — default off."/>
+  <arg name="use_sim_time" default="true" description="Use simulation time supplied on /clock."/>
+  <arg name="enable_crab_avoidance" default="false" description="Enable crab-walking obstacle avoidance"/>
+
+  <!-- Vehicle interface -->
+  <arg name="launch_vehicle_interface" default="true"/>
+  <arg name="initial_engage_state" default="true"/>
+
+  <!-- RViz visualization -->
+  <arg name="launch_rviz" default="true"/>
+  <arg name="rviz_config" default="$(find-pkg-share igv_launch)/rviz/autoware.rviz"/>
+  <arg name="rviz_respawn" default="false"/>
+
+  <!-- System component parameters (minimal FMS mode - only diagnostic_graph_aggregator) -->
+  <arg name="launch_system" default="true" description="Enable system module with FMS-compatible diagnostics (all modes always OK)"/>
+  <arg name="diagnostic_graph_aggregator_param_path" default="$(find-pkg-share diagnostic_graph_aggregator)/config/default.param.yaml"/>
+  <arg name="diagnostic_graph_aggregator_graph_path" default="$(find-pkg-share igv_launch)/config/system/diagnostic_graph_aggregator/autoware-fms.yaml"/>
+
+  <!-- API component parameters -->
+  <arg name="scenario_simulation" default="false"/>
+  <arg name="launch_deprecated_api" default="$(var scenario_simulation)"/>
+
+  <!-- Planning component launch control -->
+  <arg name="launch_planning" default="true" description="Launch planning component (disable when planning handled externally)"/>
+
+  <!-- Shared component gates -->
+  <arg name="launch_global_params" default="true" description="Launch global_parameter_loader"/>
+  <arg name="launch_map" default="true" description="Launch the ZPMC tiled HD map loader"/>
+  <arg name="launch_legacy_map" default="false" description="Launch legacy Lanelet2 and pointcloud map loaders"/>
+  <arg name="launch_vehicle_component" default="true" description="Launch tier4_vehicle_launch (URDF, robot_state_publisher, vehicle_interface)"/>
+  <arg name="launch_autoware_api" default="true" description="Launch tier4_autoware_api"/>
+
+  <!-- Localization initialization (consumed by the autoware_api init pose) -->
+  <arg name="user_defined_initial_pose/pose" default="[80.0, 20.0, 0.0, 0.0, 0.0, 0.0, 1.0]"/>
+
+  <!-- Keep planning and RViz on the selected clock. -->
+  <set_parameter name="use_sim_time" value="$(var use_sim_time)"/>
+
+  <!-- ===================== GLOBAL PARAMETERS ===================== -->
+  <group scoped="false" if="$(var launch_global_params)">
+    <include file="$(find-pkg-share global_parameter_loader)/launch/global_params.launch.py">
+      <arg name="use_sim_time" value="$(var use_sim_time)"/>
+      <arg name="vehicle_model" value="$(var vehicle_model)"/>
+    </include>
+  </group>
+
+  <!-- ===================== LAUNCH COMPONENTS ===================== -->
+
+  <!--
+    1. System Component (minimal FMS mode - only diagnostic graph aggregator)
+
+    In FMS mode, we only need the diagnostic_graph_aggregator to publish
+    /system/operation_mode/availability (all modes OK). The full system.launch.xml
+    requires many archived packages (mrm_handler, duplicated_node_checker, etc.)
+    that are not built. The FMS diagnostic graph marks all modes as always-OK.
+
+    Note: MRM state is not published, but vehicle_cmd_gate has optional subscription -
+    it won't crash, just keeps is_system_emergency_=false (safe default).
+  -->
+  <group if="$(var launch_system)">
+    <group>
+      <push-ros-namespace namespace="/system"/>
+      <include file="$(find-pkg-share diagnostic_graph_aggregator)/launch/aggregator.launch.xml">
+        <arg name="param_file" value="$(var diagnostic_graph_aggregator_param_path)"/>
+        <arg name="graph_file" value="$(var diagnostic_graph_aggregator_graph_path)"/>
+      </include>
+    </group>
+  </group>
+
+  <!-- 2. Xiamen ZPMC tiled map for path planning and RViz -->
+  <group if="$(var launch_map)">
+    <include file="$(find-pkg-share zpmc_map_loader)/launch/zpmc_map_loader.launch.xml">
+      <arg name="tile_directory" value="$(var zpmc_tile_directory)"/>
+      <arg name="use_sim_time" value="$(var use_sim_time)"/>
+    </include>
+  </group>
+
+  <!-- Optional compatibility path for sites that still provide Lanelet2/PCD maps. -->
+  <group if="$(var launch_legacy_map)">
+    <include file="$(find-pkg-share map_loader)/launch/lanelet2_map_loader.launch.xml">
+      <arg name="lanelet2_map_path" value="$(var map_path)/$(var lanelet2_map_file)"/>
+    </include>
+    <include file="$(find-pkg-share map_loader)/launch/pointcloud_map_loader.launch.xml">
+      <arg name="pointcloud_map_path" value="$(var map_path)/$(var pointcloud_map_file)"/>
+    </include>
+  </group>
+
+  <!-- 3. Vehicle Component -->
+  <group if="$(var launch_vehicle_component)">
+    <include file="$(find-pkg-share tier4_vehicle_launch)/launch/vehicle.launch.xml">
+      <arg name="vehicle_model" value="$(var vehicle_model)"/>
+      <arg name="sensor_model" value="$(var sensor_model)"/>
+      <arg name="launch_vehicle_interface" value="$(var launch_vehicle_interface)"/>
+      <arg name="initial_engage_state" value="$(var initial_engage_state)"/>
+    </include>
+  </group>
+
+  <!-- 4. Planning Component with FMS Integration -->
+  <group if="$(var launch_planning)">
+    <include file="$(find-pkg-share igv_launch)/launch/components/tier4_planning_component_fms.launch.xml">
+      <arg name="vehicle_model" value="$(var vehicle_model)"/>
+      <arg name="module_preset" value="$(var module_preset)"/>
+      <arg name="enable_all_modules_auto_mode" value="$(var enable_all_modules_auto_mode)"/>
+      <arg name="is_simulation" value="$(var is_simulation)"/>
+      <arg name="use_sim_time" value="$(var use_sim_time)"/>
+      <!-- FMS converter subscribes to /map/vector_map_humble. -->
+      <!-- FMS specific arguments -->
+      <arg name="fms_enabled" value="$(var fms_enabled)"/>
+      <arg name="fms_protocol_type" value="$(var fms_protocol_type)"/>
+      <arg name="fms_topic" value="$(var fms_topic)"/>
+      <arg name="fms_json_topic" value="$(var fms_json_topic)"/>
+      <arg name="use_json_input" value="$(var use_json_input)"/>
+      <arg name="route_window_topic" value="$(var route_window_topic)"/>
+      <arg name="stop_point_topic" value="$(var stop_point_topic)"/>
+      <arg name="skip_motion_velocity_planner" value="$(var skip_motion_velocity_planner)"/>
+      <arg name="lane_width" value="$(var lane_width)"/>
+      <arg name="generate_drivable_area" value="$(var generate_drivable_area)"/>
+      <arg name="use_occupancy_grid" value="$(var use_occupancy_grid)"/>
+      <arg name="enable_detection_grid" value="$(var enable_detection_grid)"/>
+      <arg name="enable_crab_avoidance" value="$(var enable_crab_avoidance)"/>
+    </include>
+
+  </group>
+
+  <!-- 5. Vehicle Agent (v1.2 edge gateway).
+       Owns the cloud-side protocol (AHTFMS-NS / internal ZPMC MQTT / scenario_loopback),
+       the 9-state mission FSM, the durable offline queue, security envelope, and
+       E-stop fast path. fms_path_converter continues to consume FMSRouteWindow /
+       FMSStopPoint topics; the IR → FMSRouteWindow bridge below closes the
+       cloud → VA → converter loop. -->
+  <let name="va_adapters_resolved"
+       value="$(eval &quot;'$(var vehicle_agent_adapters)' or {'default':'ahtfms_ns','legacy':'ahtfms_ns','ahtfms_ns':'ahtfms_ns','internal_zpmc':'internal_zpmc','scenario_loopback':'scenario_loopback'}.get('$(var fms_protocol_type)','ahtfms_ns')&quot;)"/>
+  <group if="$(eval &quot;'$(var fms_enabled)' == 'true' and '$(var use_vehicle_agent)' == 'true'&quot;)">
+    <include file="$(find-pkg-share vehicle_agent)/launch/vehicle_agent.launch.py">
+      <arg name="adapters" value="$(var va_adapters_resolved)"/>
+      <arg name="vehicle_id" value="$(var vehicle_id)"/>
+      <arg name="publish_ns" value="$(var vehicle_agent_publish_ns)"/>
+      <arg name="scenario_path" value="$(var vehicle_agent_scenario_path)"/>
+    </include>
+    <!-- 5b. IR → FMSRouteWindow / FMSStopPoint translator. Lets the legacy
+         fms_path_converter consume missions delivered by vehicle_agent,
+         closing the cloud → VA → converter loop. -->
+    <group if="$(var use_va_route_bridge)">
+      <include file="$(find-pkg-share vehicle_agent)/launch/route_bridge.launch.py">
+        <arg name="vehicle_id" value="$(var vehicle_id)"/>
+        <arg name="mission_topic" value="$(var vehicle_agent_publish_ns)/mission"/>
+        <arg name="command_topic" value="$(var vehicle_agent_publish_ns)/command"/>
+        <arg name="route_window_topic" value="$(var route_window_topic)"/>
+        <arg name="stop_point_topic" value="$(var stop_point_topic)"/>
+      </include>
+    </group>
+  </group>
+
+  <!-- 6. Perception Relay (Galactic → Humble conversion for the external perception team) -->
+  <group if="$(var enable_perception_relay)">
+    <include file="$(find-pkg-share perception_relay)/launch/perception_relay.launch.xml">
+      <arg name="input_detected_objects_topic" value="$(var perception_relay_detected_objects_topic)"/>
+    </include>
+
+  </group>
+
+  <!-- 7. Autoware API Component -->
+  <group if="$(var launch_autoware_api)">
+    <include file="$(find-pkg-share tier4_autoware_api_launch)/launch/autoware_api.launch.xml">
+      <arg name="init_simulator_pose" value="$(var user_defined_initial_pose/pose)"/>
+      <arg name="init_localization_pose" value="$(var user_defined_initial_pose/pose)"/>
+    </include>
+  </group>
+
+  <!-- 8. RViz Visualization (Optional) -->
+  <group if="$(var launch_rviz)">
+    <node pkg="rviz2" exec="rviz2" name="rviz2" output="screen" respawn="$(var rviz_respawn)" args="-d $(var rviz_config)">
+      <param name="use_sim_time" value="$(var use_sim_time)"/>
+      <remap from="/map/vector_map" to="/map/vector_map_humble"/>
+      <remap from="/map/pointcloud_map" to="/map/pointcloud_map_humble"/>
+      <remap from="/map/vector_map_marker" to="/map/vector_map_marker_humble"/>
+    </node>
+  </group>
+
+</launch>

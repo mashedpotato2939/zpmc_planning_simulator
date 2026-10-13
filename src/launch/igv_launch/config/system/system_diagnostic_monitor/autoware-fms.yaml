@@ -1,0 +1,33 @@
+# FMS mode diagnostic graph - bypasses all error checking
+# All modes always report OK to allow autonomous operation without diagnostics
+#
+# This configuration is used when running in FMS (Fleet Management System) mode
+# where the external FMS handles higher-level vehicle control and safety.
+# All operation modes are marked as always-available to prevent the system
+# from blocking autonomous operation based on diagnostic failures.
+
+units:
+  # All modes set to 'ok' type - always passes regardless of subsystem status
+  - path: /autoware/modes/stop
+    type: ok
+
+  - path: /autoware/modes/autonomous
+    type: ok  # Always available - no diagnostic checks required
+
+  - path: /autoware/modes/local
+    type: ok
+
+  - path: /autoware/modes/remote
+    type: ok
+
+  - path: /autoware/modes/emergency_stop
+    type: ok
+
+  - path: /autoware/modes/comfortable_stop
+    type: ok
+
+  - path: /autoware/modes/pull_over
+    type: ok
+
+  - path: /autoware/debug/tools
+    type: ok

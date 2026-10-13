@@ -1,0 +1,5 @@
+/**:
+  ros__parameters:
+    tile_directory: ""        # Path to tile_*.bin + map_header.bin directory
+    tile_size: 300.0          # Tile size in meters
+    frame_id: "map"           # Coordinate frame

@@ -1,0 +1,22 @@
+# Minimal loopback scenario: load → run → finish.
+# Used by vehicle_agent_sim.launch.py and the Sprint 1 verification gate.
+steps:
+  - delay_ms: 3000
+    type: mission
+    id: scn-001
+    seq: 1
+    waypoints:
+      - { x: 80.0, y: 20.0, yaw: 0.0, target_speed: 2.0, segment_id: "s0" }
+      - { x: 90.0, y: 20.0, yaw: 0.0, target_speed: 2.0, segment_id: "s0" }
+      - { x: 100.0, y: 22.0, yaw: 0.1, target_speed: 2.0, segment_id: "s1" }
+  - delay_ms: 1000
+    type: command
+    mission_id: scn-001
+    kind: PAUSE
+  - delay_ms: 500
+    type: command
+    mission_id: scn-001
+    kind: RESUME
+  - delay_ms: 500
+    type: complete
+    mission_id: scn-001

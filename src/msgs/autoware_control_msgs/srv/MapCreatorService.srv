@@ -1,0 +1,5 @@
+geometry_msgs/Pose[] pose
+uint32 trajectory_type
+---
+int32 result
+autoware_planning_msgs/Trajectory traj

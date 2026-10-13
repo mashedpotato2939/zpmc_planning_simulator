@@ -1,0 +1,13 @@
+# Trajectory Switch Node Parameters
+# This configuration controls runtime switching between FMS and Autoware trajectories
+
+/**:
+  ros__parameters:
+    # Mode selection (can be changed at runtime)
+    use_fms_trajectory: false          # true = FMS, false = Autoware
+
+    # Timing settings
+    publish_rate: 20.0                 # Output trajectory publish rate (Hz)
+    timeout: 1.0                       # Timeout for trajectory validity (seconds)
+                                       # If no new trajectory received within timeout,
+                                       # trajectory is considered stale

@@ -1,0 +1,22 @@
+{
+  "header": {"message_time": 1732468801000},
+  "job_id": "J-9001",
+  "job_type": 1,
+  "job_task": {
+    "task_id": "T-9001-1",
+    "task_status": 1,
+    "task_type": 2,
+    "destination_type": 4,
+    "destination_name": "QC-12"
+  },
+  "job_containers": [
+    {
+      "container_id": "MSCU1234567",
+      "container_type": 3,
+      "container_size": 2,
+      "container_vehicle_position": 3,
+      "container_weight": 18500.0
+    }
+  ],
+  "job_vessel_id": "MV-OCEAN-STAR"
+}

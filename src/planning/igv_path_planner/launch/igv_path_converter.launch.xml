@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Standalone launcher for the igv_path_converter node (FMS path stage).
+
+  This brings up ONLY igv_path_converter with the same remaps/params the
+  production chain uses, for ad-hoc / manual runs without the full planning
+  component. The production deployment does not include this file — it wires
+  the node inline via:
+
+    launch_with_fms_real_vehicle.sh
+      └─► igv_planning.launch.xml
+            └─► components/tier4_planning_component_fms.launch.xml
+
+  Keep this file in sync with the igv_path_converter <node> block in
+  tier4_planning_component_fms.launch.xml (that block is the source of truth).
+
+  Usage:
+    ros2 launch igv_path_planner igv_path_converter.launch.xml
+-->
+<launch>
+  <!-- Protocol / vehicle -->
+  <arg name="fms_protocol_type" default="default" description="FMS protocol plugin: 'default' (ICD) or 'legacy'"/>
+  <arg name="vehicle_id" default="v001" description="Vehicle identifier for FMS uplink reporting"/>
+  <arg name="vehicle_model" default="scale_igv_vehicle" description="Vehicle model (supplies vehicle_info.param.yaml)"/>
+
+  <!-- FMS input topics -->
+  <arg name="fms_topic" default="/fms/reference_path" description="FMS path input (legacy mode)"/>
+  <arg name="fms_json_topic" default="/fms/reference_path_json" description="FMS JSON input (legacy mode)"/>
+  <arg name="route_window_topic" default="/fms/route_window" description="FMS route window (default mode)"/>
+  <arg name="stop_point_topic" default="/fms/stop_point" description="FMS stop point (default mode)"/>
+
+  <!-- Behaviour -->
+  <arg name="use_json_input" default="false" description="Enable JSON string input (legacy mode)"/>
+  <arg name="lane_width" default="3.5" description="Drivable-area synthesis lane width [m]"/>
+  <arg name="generate_drivable_area" default="true" description="Synthesize drivable bounds from the FMS path"/>
+
+  <node pkg="igv_path_planner" exec="igv_path_converter" name="igv_path_converter" output="screen">
+    <param from="$(find-pkg-share igv_path_planner)/config/igv_path_converter.param.yaml"/>
+    <param from="$(find-pkg-share $(var vehicle_model)_description)/config/vehicle_info.param.yaml"/>
+
+    <param name="fms_protocol.type" value="$(var fms_protocol_type)"/>
+    <param name="vehicle_id" value="$(var vehicle_id)"/>
+    <param name="fms_protocol.legacy.use_json_input" value="$(var use_json_input)"/>
+    <param name="lane_width" value="$(var lane_width)"/>
+    <param name="generate_drivable_area" value="$(var generate_drivable_area)"/>
+    <param name="publish_rate" value="20.0"/>
+
+    <!-- FMS inputs -->
+    <remap from="~/input/fms_path" to="$(var fms_topic)"/>
+    <remap from="~/input/fms_json" to="$(var fms_json_topic)"/>
+    <remap from="~/input/route_window" to="$(var route_window_topic)"/>
+    <remap from="~/input/stop_point" to="$(var stop_point_topic)"/>
+    <remap from="~/input/odometry" to="/localization/kinematic_state"/>
+    <remap from="~/input/objects" to="/perception/object_recognition/objects"/>
+    <remap from="~/input/vector_map" to="/map/vector_map_humble"/>
+
+    <!-- Path / route to the planning chain -->
+    <remap from="~/output/path" to="/planning/igv_path_planner/path"/>
+    <remap from="~/output/route" to="/planning/mission_planning/route"/>
+
+    <!-- FMS uplink (default protocol) -->
+    <remap from="~/output/status" to="/fms_bridge/status"/>
+    <remap from="~/output/adapter_status" to="/fms_bridge/adapter_status"/>
+    <remap from="~/output/vehicle_status" to="/fms/vehicle_status"/>
+    <remap from="~/output/trajectory_report" to="/fms/trajectory_report"/>
+    <remap from="~/output/job_event" to="/fms/job_event"/>
+    <remap from="~/output/detour_request" to="/fms/detour_request"/>
+  </node>
+</launch>

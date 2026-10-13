@@ -1,0 +1,36 @@
+{
+    "job_id": "job_01",
+    "orientation": 0,
+    "points": [
+        {
+            "heading": 2.407,
+            "speed": 5,
+            "type_enum": 2,
+            "type_text": "LC_START",
+            "x": 22.84,
+            "y": -13.99,
+            "z": 0
+        },
+        {
+            "heading": 2.417,
+            "speed": 5,
+            "type_enum": 3,
+            "type_text": "LC_END",
+            "x": 16.67,
+            "y": -5.8,
+            "z": 0
+        },
+        {
+            "heading": 2.433,
+            "speed": 5,
+            "type_enum": 1,
+            "type_text": "DESTINATION",
+            "x": 13.35,
+            "y": -2.79,
+            "z": 0
+        }
+    ],
+    "route_id": "test_001",
+    "task_id": "task_01",
+    "vehicle_id": "v001"
+}

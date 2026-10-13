@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Trajectory Switch Launch File
+
+  This launch file enables runtime switching between FMS and Autoware trajectories.
+  Useful for testing or hybrid operation modes.
+
+  Switch modes via:
+    1. ROS2 service: ros2 service call /trajectory_switch/switch_to_fms std_srvs/srv/SetBool "{data: true}"
+    2. ROS2 parameter: ros2 param set /trajectory_switch use_fms_trajectory true
+-->
+<launch>
+  <!-- Arguments -->
+  <arg name="use_fms_trajectory" default="false" description="Initial mode: FMS or Autoware"/>
+  <arg name="fms_trajectory_topic" default="/fms_bridge/trajectory"/>
+  <arg name="autoware_trajectory_topic" default="/planning/scenario_planning/lane_driving/trajectory_autoware"/>
+  <arg name="output_trajectory_topic" default="/planning/scenario_planning/lane_driving/trajectory"/>
+  <arg name="param_file" default="$(find-pkg-share igv_velocity_planner)/config/trajectory_switch.param.yaml"/>
+
+  <!-- Trajectory Switch Node -->
+  <node pkg="igv_velocity_planner" exec="trajectory_switch" name="trajectory_switch" output="screen">
+    <param from="$(var param_file)"/>
+    <param name="use_fms_trajectory" value="$(var use_fms_trajectory)"/>
+
+    <remap from="~/input/fms_trajectory" to="$(var fms_trajectory_topic)"/>
+    <remap from="~/input/autoware_trajectory" to="$(var autoware_trajectory_topic)"/>
+    <remap from="~/output/trajectory" to="$(var output_trajectory_topic)"/>
+  </node>
+</launch>

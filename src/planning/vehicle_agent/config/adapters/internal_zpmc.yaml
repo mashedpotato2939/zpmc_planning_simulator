@@ -1,0 +1,54 @@
+# Internal ZPMC adapter configuration.
+#
+# This adapter speaks ZPMC's internal MQTT 5 protocol with HMAC-SHA256
+# message signing, replay protection via a nonce LRU, and a clock-skew
+# acceptance window. Every published message is wrapped:
+#   { "payload": <ir_json>, "ts": <epoch_ms>, "nonce": <hex>, "sig": <hex> }
+# The receiver verifies (a) the MAC, (b) ts within ±skew_tolerance_ms of
+# local time, (c) nonce has not been seen recently.
+#
+# In Sprint 5 the production MQTT bus is not yet wired to paho-cpp; this
+# adapter is exercised by the dual-multiplexer integration test through a
+# FakeMqttBroker. Operators selecting `internal_zpmc` from
+# vehicle_agent_node before paho is restored will see the start() call
+# throw — that is intentional, to keep ops aware of the gap.
+/**:
+  ros__parameters:
+    internal_zpmc:
+      # Broker reachability. Production points at the per-fleet broker
+      # behind the corporate firewall; staging uses an isolated VPC instance.
+      broker_host: "127.0.0.1"
+      broker_port: 8883
+      vehicle_id: "IGV2001"
+
+      # Shared secret for the message MAC. MUST be provisioned out-of-band
+      # (Ansible-managed secrets vault). Empty disables signing — only
+      # acceptable for unit tests; refuse this in production.
+      hmac_key: ""
+
+      # Anti-replay window. Messages whose ts is outside ±skew_tolerance_ms
+      # of local time are rejected even with a valid MAC. NTP is a hard
+      # dependency on both ends — see ops runbook.
+      skew_tolerance_ms: 30000
+
+      # Nonce ring sizing. Capacity bounds memory; TTL bounds how far back
+      # a replay could theoretically come from. Both eviction policies act
+      # simultaneously.
+      nonce_capacity: 4096
+      nonce_ttl_ms: 60000
+
+      # mTLS material. Paths must exist and be readable at start; the
+      # adapter refuses to come up otherwise.
+      mtls:
+        ca_path: "/etc/vehicle_agent/internal_zpmc/ca.pem"
+        cert_path: "/etc/vehicle_agent/internal_zpmc/client.pem"
+        key_path: "/etc/vehicle_agent/internal_zpmc/client.key"
+        verify_server: true
+
+      # Topic plan. The trailing slash is intentional; the adapter appends
+      # vehicle_id to derive the actual MQTT topic.
+      topic_mission: "zpmc/v1/mission/"
+      topic_command: "zpmc/v1/command/"
+      topic_telemetry: "zpmc/v1/telemetry/"
+      topic_status: "zpmc/v1/status/"
+      topic_ack: "zpmc/v1/ack/"

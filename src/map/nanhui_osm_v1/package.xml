@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>nanhui_osm_v1</name>
+  <version>1.0.0</version>
+  <description>Nanhui local-coordinate Lanelet2 and pointcloud map</description>
+  <maintainer email="developer@zpmc.com">ZPMC Developer</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

@@ -1,0 +1,31 @@
+<library path="tier4_adapi_rviz_plugin">
+
+  <class type="tier4_adapi_rviz_plugins::RouteTool" base_class_type="rviz_common::Tool">
+    <description>RouteTool</description>
+  </class>
+
+  <class type="tier4_adapi_rviz_plugins::FMSGoalTool" base_class_type="rviz_common::Tool">
+    <description>Set FMS goal pose for trajectory generation</description>
+  </class>
+
+  <class type="tier4_adapi_rviz_plugins::RoutePanel" base_class_type="rviz_common::Panel">
+    <description>RoutePanel</description>
+  </class>
+
+  <class type="tier4_adapi_rviz_plugins::StatePanel" base_class_type="rviz_common::Panel">
+    <description>StatePanel</description>
+  </class>
+
+  <class type="tier4_adapi_rviz_plugins::DoorPanel" base_class_type="rviz_common::Panel">
+    <description>DoorPanel</description>
+  </class>
+
+  <class type="tier4_adapi_rviz_plugins::ReversePanel" base_class_type="rviz_common::Panel">
+    <description>Toggle reverse driving mode for FMS path generation</description>
+  </class>
+
+  <class type="tier4_adapi_rviz_plugins::UpperTestPanel" base_class_type="rviz_common::Panel">
+    <description>Invoke the upper test service for 4WS and jog move control</description>
+  </class>
+
+</library>
