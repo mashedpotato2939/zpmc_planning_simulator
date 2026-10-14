@@ -2,7 +2,7 @@
 
 # Launch Autoware Planning Terminal for the Real Vehicle (scale IGV)
 #
-# This terminal owns: Xiamen ZPMC tiled map, vehicle interface, planning (FMS),
+# This terminal owns: the selected Xiamen HD map, vehicle interface, planning (FMS),
 # vehicle_agent (cloud FMS edge gateway), perception relay, system diagnostics,
 # autoware API, and optionally RViz. Backed by igv_planning.launch.xml.
 #
@@ -88,11 +88,16 @@ ENABLE_DETECTION_GRID=${ENABLE_DETECTION_GRID:-false}
 
 # ===================== MAP AND VEHICLE =====================
 
+MAP_FORMAT=${MAP_FORMAT:-osm}
+case "$MAP_FORMAT" in
+  osm|tiles) ;;
+  *) echo "Invalid MAP_FORMAT=$MAP_FORMAT (expected osm or tiles)" >&2; exit 2 ;;
+esac
 ZPMC_TILE_DIRECTORY=${ZPMC_TILE_DIRECTORY:-$SCRIPT_DIR/src/map/xiamen_tiles_v1}
-MAP_PATH=${MAP_PATH:-$ZPMC_TILE_DIRECTORY}
-LANELET2_MAP_FILE=${LANELET2_MAP_FILE:-nanhui_double_deck_fat_v2.osm}
+MAP_PATH=${MAP_PATH:-$SCRIPT_DIR/src/map/xiamen_tiles_v1}
+LANELET2_MAP_FILE=${LANELET2_MAP_FILE:-xiamen-prod-galactic.osm}
 POINTCLOUD_MAP_FILE=${POINTCLOUD_MAP_FILE:-global.pcd}
-LAUNCH_LEGACY_MAP=${LAUNCH_LEGACY_MAP:-false}
+LAUNCH_POINTCLOUD_MAP=${LAUNCH_POINTCLOUD_MAP:-false}
 
 # Real scale IGV hardware
 # VEHICLE_MODEL=scale_igv_vehicle
@@ -121,8 +126,10 @@ echo "  enable_detection_grid=$ENABLE_DETECTION_GRID (fallback occupancy source)
 echo "  use_vehicle_agent=$USE_VEHICLE_AGENT  vehicle_agent_adapters='${VEHICLE_AGENT_ADAPTERS:-<derived from protocol>}'"
 echo ""
 echo "Map/Vehicle:"
+echo "  MAP_FORMAT=$MAP_FORMAT"
 echo "  ZPMC_TILE_DIRECTORY=$ZPMC_TILE_DIRECTORY"
-echo "  legacy_map=$LAUNCH_LEGACY_MAP  MAP_PATH=$MAP_PATH"
+echo "  MAP_PATH=$MAP_PATH  LANELET2_MAP_FILE=$LANELET2_MAP_FILE"
+echo "  launch_pointcloud_map=$LAUNCH_POINTCLOUD_MAP  POINTCLOUD_MAP_FILE=$POINTCLOUD_MAP_FILE"
 echo "  VEHICLE_MODEL=$VEHICLE_MODEL  VEHICLE_ID=$VEHICLE_ID"
 echo ""
 echo "Optional: launch_rviz=$LAUNCH_RVIZ  log_to_file=$LOG_TO_FILE"
@@ -135,11 +142,12 @@ if [ "$LOG_TO_FILE" = "true" ]; then
 fi
 
 LAUNCH_CMD=(ros2 launch igv_launch igv_planning.launch.xml
+  map_format:=$MAP_FORMAT
   zpmc_tile_directory:=$ZPMC_TILE_DIRECTORY
   map_path:=$MAP_PATH
   lanelet2_map_file:=$LANELET2_MAP_FILE
   pointcloud_map_file:=$POINTCLOUD_MAP_FILE
-  launch_legacy_map:=$LAUNCH_LEGACY_MAP
+  launch_pointcloud_map:=$LAUNCH_POINTCLOUD_MAP
   vehicle_model:=$VEHICLE_MODEL
   vehicle_id:=$VEHICLE_ID
   is_simulation:=$IS_SIMULATION

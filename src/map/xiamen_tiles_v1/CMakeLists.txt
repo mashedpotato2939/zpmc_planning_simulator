@@ -6,6 +6,7 @@ find_package(ament_cmake REQUIRED)
 install(
   FILES
     README.md
+    xiamen-prod-galactic.osm
     map_header.bin
     tile_3221225472.bin
     tile_3221225473.bin

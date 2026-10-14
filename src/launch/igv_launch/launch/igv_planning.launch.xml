@@ -6,7 +6,7 @@
     Components owned here:
       - System diagnostics (FMS-flavoured diagnostic_graph_aggregator)
       - global_parameter_loader
-      - ZPMC tiled HD map loader
+      - Selected OSM or ZPMC tiled HD map loader
       - Vehicle component (URDF + robot_state_publisher + vehicle_interface)
       - Planning chain: FMS path converter → fms_velocity_shaper →
         igv_kinematic_smoother → planning_validator (see
@@ -60,14 +60,15 @@
 
 
   <!-- Map and vehicle parameters -->
+  <arg name="map_format" default="osm" description="HD map format: osm or tiles"/>
   <arg name="zpmc_tile_directory" default="$(find-pkg-share xiamen_tiles_v1)" description="ZPMC tiled HD map directory"/>
-  <arg name="map_path" default="$(find-pkg-share xiamen_tiles_v1)" description="Legacy Lanelet2 and pointcloud map directory"/>
+  <arg name="map_path" default="$(find-pkg-share xiamen_tiles_v1)" description="OSM and optional pointcloud map directory"/>
   <arg name="vehicle_model" default="igv_vehicle" description="vehicle model name"/>
   <arg name="sensor_model" default="fms_sensor_kit" description="sensor model name"/>
   <arg name="vehicle_id" default="v001" description="vehicle id"/>
 
   <!-- Map files -->
-  <arg name="lanelet2_map_file" default="nanhui_double_deck_fat_v2.osm" description="Lanelet2 map file"/>
+  <arg name="lanelet2_map_file" default="xiamen-prod-galactic.osm" description="Lanelet2 OSM map file"/>
   <arg name="pointcloud_map_file" default="global.pcd" description="Pointcloud map file"/>
 
   <!-- Planning settings -->
@@ -100,8 +101,8 @@
 
   <!-- Shared component gates -->
   <arg name="launch_global_params" default="true" description="Launch global_parameter_loader"/>
-  <arg name="launch_map" default="true" description="Launch the ZPMC tiled HD map loader"/>
-  <arg name="launch_legacy_map" default="false" description="Launch legacy Lanelet2 and pointcloud map loaders"/>
+  <arg name="launch_map" default="true" description="Launch the selected HD map loader"/>
+  <arg name="launch_pointcloud_map" default="false" description="Load pointcloud_map_file when a PCD is available"/>
   <arg name="launch_vehicle_component" default="true" description="Launch tier4_vehicle_launch (URDF, robot_state_publisher, vehicle_interface)"/>
   <arg name="launch_autoware_api" default="true" description="Launch tier4_autoware_api"/>
 
@@ -142,22 +143,24 @@
     </group>
   </group>
 
-  <!-- 2. Xiamen ZPMC tiled map for path planning and RViz -->
+  <!-- 2. Select exactly one vector map format. -->
   <group if="$(var launch_map)">
-    <include file="$(find-pkg-share zpmc_map_loader)/launch/zpmc_map_loader.launch.xml">
-      <arg name="tile_directory" value="$(var zpmc_tile_directory)"/>
-      <arg name="use_sim_time" value="$(var use_sim_time)"/>
-    </include>
-  </group>
-
-  <!-- Optional compatibility path for sites that still provide Lanelet2/PCD maps. -->
-  <group if="$(var launch_legacy_map)">
-    <include file="$(find-pkg-share map_loader)/launch/lanelet2_map_loader.launch.xml">
-      <arg name="lanelet2_map_path" value="$(var map_path)/$(var lanelet2_map_file)"/>
-    </include>
-    <include file="$(find-pkg-share map_loader)/launch/pointcloud_map_loader.launch.xml">
-      <arg name="pointcloud_map_path" value="$(var map_path)/$(var pointcloud_map_file)"/>
-    </include>
+    <group if="$(eval &quot;'$(var map_format)' == 'tiles'&quot;)">
+      <include file="$(find-pkg-share zpmc_map_loader)/launch/zpmc_map_loader.launch.xml">
+        <arg name="tile_directory" value="$(var zpmc_tile_directory)"/>
+        <arg name="use_sim_time" value="$(var use_sim_time)"/>
+      </include>
+    </group>
+    <group if="$(eval &quot;'$(var map_format)' == 'osm'&quot;)">
+      <include file="$(find-pkg-share map_loader)/launch/lanelet2_map_loader.launch.xml">
+        <arg name="lanelet2_map_path" value="$(var map_path)/$(var lanelet2_map_file)"/>
+      </include>
+    </group>
+    <group if="$(var launch_pointcloud_map)">
+      <include file="$(find-pkg-share map_loader)/launch/pointcloud_map_loader.launch.xml">
+        <arg name="pointcloud_map_path" value="$(var map_path)/$(var pointcloud_map_file)"/>
+      </include>
+    </group>
   </group>
 
   <!-- 3. Vehicle Component -->
